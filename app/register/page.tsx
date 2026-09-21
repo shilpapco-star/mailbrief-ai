@@ -1,8 +1,8 @@
 "use client";
 
+import { FormEvent, useState } from "react";
+import Link from "next/link";
 import {
-  ArrowLeft,
-  ArrowRight,
   Eye,
   EyeOff,
   LockKeyhole,
@@ -10,220 +10,317 @@ import {
   ShieldCheck,
   User,
 } from "lucide-react";
-import Link from "next/link";
-import { useState } from "react";
+import { createClient } from "@/lib/supabase/client";
 
 export default function RegisterPage() {
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  async function handleRegister(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    setError("");
+
+    const trimmedName = fullName.trim();
+    const trimmedEmail = email.trim();
+
+    if (!trimmedName) {
+      setError("Please enter your full name.");
+      return;
+    }
+
+    if (!trimmedEmail) {
+      setError("Please enter your email address.");
+      return;
+    }
+
+    if (password.length < 6) {
+      setError("Password must contain at least 6 characters.");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
+
+    if (!acceptedTerms) {
+      setError("Please accept the Terms of Service and Privacy Policy.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const supabase = createClient();
+
+      const { error: otpError } = await supabase.auth.signInWithOtp({
+        email: trimmedEmail,
+        options: {
+          shouldCreateUser: true,
+          data: {
+            full_name: trimmedName,
+          },
+        },
+      });
+
+      if (otpError) {
+        setError(otpError.message);
+        return;
+      }
+
+      // Store the name temporarily so it can be used after OTP verification.
+      sessionStorage.setItem("mailbrief_full_name", trimmedName);
+
+      // Go to the OTP verification page.
+      window.location.href = `/verify-otp?email=${encodeURIComponent(
+        trimmedEmail
+      )}`;
+    } catch {
+      setError("Something went wrong while sending the OTP. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
-    <main className="min-h-screen bg-[#f8fafc] text-slate-900">
-      {/* Header */}
-      <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-6 lg:px-10">
-          <Link href="/" className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#111827] text-white">
-              <Mail size={20} />
-            </div>
+    <main className="min-h-screen bg-slate-50 px-4 py-8 sm:px-6">
+      <div className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-md items-center justify-center">
+        <div className="w-full">
+          {/* Logo */}
+          <div className="mb-8 text-center">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-2 text-xl font-bold text-slate-900"
+            >
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-900 text-sm font-bold text-white">
+                M
+              </div>
 
-            <div>
-              <p className="text-lg font-bold tracking-tight">
-                MailBrief<span className="text-indigo-600"> AI</span>
-              </p>
-
-              <p className="text-[10px] uppercase tracking-[0.18em] text-slate-400">
-                Understand every email
-              </p>
-            </div>
-          </Link>
-
-          <Link
-            href="/"
-            className="flex items-center gap-2 text-sm font-medium text-slate-500 transition hover:text-slate-900"
-          >
-            <ArrowLeft size={16} />
-            Back to home
-          </Link>
-        </div>
-      </header>
-
-      {/* Main */}
-      <section className="flex min-h-[calc(100vh-80px)] items-center justify-center px-6 py-12">
-        <div className="w-full max-w-md">
-          {/* Heading */}
-          <div className="text-center">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600">
-              <User size={24} />
-            </div>
-
-            <h1 className="mt-6 text-3xl font-bold tracking-tight text-slate-950">
-              Create your account
-            </h1>
-
-            <p className="mt-2 text-sm leading-6 text-slate-500">
-              Start understanding your emails in seconds.
-            </p>
+              MailBrief
+            </Link>
           </div>
 
           {/* Card */}
-          <div className="mt-8 rounded-3xl border border-slate-200 bg-white p-7 shadow-xl shadow-slate-900/5 sm:p-8">
-            {/* Name */}
-            <div>
-              <label
-                htmlFor="name"
-                className="mb-2 block text-sm font-semibold text-slate-700"
-              >
-                Full name
-              </label>
+          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+            <div className="mb-7 text-center">
+              <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+                Create your account
+              </h1>
 
-              <div className="relative">
-                <User
-                  size={18}
-                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
-                />
-
-                <input
-                  id="name"
-                  type="text"
-                  placeholder="Your name"
-                  className="h-12 w-full rounded-xl border border-slate-200 bg-white pl-11 pr-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10"
-                />
-              </div>
+              <p className="mt-2 text-sm leading-6 text-slate-500">
+                Start turning long emails into clear AI-powered insights.
+              </p>
             </div>
 
-            {/* Email */}
-            <div className="mt-5">
-              <label
-                htmlFor="email"
-                className="mb-2 block text-sm font-semibold text-slate-700"
-              >
-                Work email
-              </label>
-
-              <div className="relative">
-                <Mail
-                  size={18}
-                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
-                />
-
-                <input
-                  id="email"
-                  type="email"
-                  placeholder="you@company.com"
-                  className="h-12 w-full rounded-xl border border-slate-200 bg-white pl-11 pr-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10"
-                />
-              </div>
-            </div>
-
-            {/* Password */}
-            <div className="mt-5">
-              <label
-                htmlFor="password"
-                className="mb-2 block text-sm font-semibold text-slate-700"
-              >
-                Password
-              </label>
-
-              <div className="relative">
-                <LockKeyhole
-                  size={18}
-                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
-                />
-
-                <input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Create a password"
-                  className="h-12 w-full rounded-xl border border-slate-200 bg-white pl-11 pr-12 text-sm outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10"
-                />
-
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700"
-                  aria-label="Toggle password visibility"
+            <form onSubmit={handleRegister} className="space-y-5">
+              {/* Full Name */}
+              <div>
+                <label
+                  htmlFor="fullName"
+                  className="mb-2 block text-sm font-medium text-slate-700"
                 >
-                  {showPassword ? (
-                    <EyeOff size={18} />
-                  ) : (
-                    <Eye size={18} />
-                  )}
-                </button>
+                  Full name
+                </label>
+
+                <div className="relative">
+                  <User
+                    size={18}
+                    className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                  />
+
+                  <input
+                    id="fullName"
+                    name="fullName"
+                    type="text"
+                    value={fullName}
+                    onChange={(event) => setFullName(event.target.value)}
+                    placeholder="Your full name"
+                    autoComplete="name"
+                    className="w-full rounded-xl border border-slate-200 bg-white py-3 pl-10 pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
+                  />
+                </div>
               </div>
-            </div>
 
-            {/* Confirm Password */}
-            <div className="mt-5">
-              <label
-                htmlFor="confirmPassword"
-                className="mb-2 block text-sm font-semibold text-slate-700"
-              >
-                Confirm password
-              </label>
+              {/* Email */}
+              <div>
+                <label
+                  htmlFor="email"
+                  className="mb-2 block text-sm font-medium text-slate-700"
+                >
+                  Work email
+                </label>
 
-              <div className="relative">
-                <LockKeyhole
-                  size={18}
-                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
-                />
+                <div className="relative">
+                  <Mail
+                    size={18}
+                    className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                  />
 
+                  <input
+                    id="email"
+                    name="email"
+                    type="email"
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
+                    placeholder="you@company.com"
+                    autoComplete="email"
+                    className="w-full rounded-xl border border-slate-200 bg-white py-3 pl-10 pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
+                  />
+                </div>
+              </div>
+
+              {/* Password */}
+              <div>
+                <label
+                  htmlFor="password"
+                  className="mb-2 block text-sm font-medium text-slate-700"
+                >
+                  Password
+                </label>
+
+                <div className="relative">
+                  <LockKeyhole
+                    size={18}
+                    className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                  />
+
+                  <input
+                    id="password"
+                    name="password"
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                    placeholder="At least 6 characters"
+                    autoComplete="new-password"
+                    className="w-full rounded-xl border border-slate-200 bg-white py-3 pl-10 pr-11 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((value) => !value)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                    aria-label={
+                      showPassword ? "Hide password" : "Show password"
+                    }
+                  >
+                    {showPassword ? (
+                      <EyeOff size={18} />
+                    ) : (
+                      <Eye size={18} />
+                    )}
+                  </button>
+                </div>
+
+                <div className="mt-2 text-xs text-slate-400">
+                  Password is used for future account security.
+                </div>
+              </div>
+
+              {/* Confirm Password */}
+              <div>
+                <label
+                  htmlFor="confirmPassword"
+                  className="mb-2 block text-sm font-medium text-slate-700"
+                >
+                  Confirm password
+                </label>
+
+                <div className="relative">
+                  <LockKeyhole
+                    size={18}
+                    className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                  />
+
+                  <input
+                    id="confirmPassword"
+                    name="confirmPassword"
+                    type={showConfirmPassword ? "text" : "password"}
+                    value={confirmPassword}
+                    onChange={(event) =>
+                      setConfirmPassword(event.target.value)
+                    }
+                    placeholder="Re-enter your password"
+                    autoComplete="new-password"
+                    className="w-full rounded-xl border border-slate-200 bg-white py-3 pl-10 pr-11 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setShowConfirmPassword((value) => !value)
+                    }
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                    aria-label={
+                      showConfirmPassword
+                        ? "Hide confirm password"
+                        : "Show confirm password"
+                    }
+                  >
+                    {showConfirmPassword ? (
+                      <EyeOff size={18} />
+                    ) : (
+                      <Eye size={18} />
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* Terms */}
+              <label className="flex items-start gap-3 text-sm text-slate-500">
                 <input
-                  id="confirmPassword"
-                  type={showConfirmPassword ? "text" : "password"}
-                  placeholder="Confirm your password"
-                  className="h-12 w-full rounded-xl border border-slate-200 bg-white pl-11 pr-12 text-sm outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10"
-                />
-
-                <button
-                  type="button"
-                  onClick={() =>
-                    setShowConfirmPassword(!showConfirmPassword)
+                  type="checkbox"
+                  checked={acceptedTerms}
+                  onChange={(event) =>
+                    setAcceptedTerms(event.target.checked)
                   }
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700"
-                  aria-label="Toggle confirm password visibility"
-                >
-                  {showConfirmPassword ? (
-                    <EyeOff size={18} />
-                  ) : (
-                    <Eye size={18} />
-                  )}
-                </button>
-              </div>
-            </div>
+                  className="mt-1 h-4 w-4 rounded border-slate-300"
+                />
 
-            {/* Terms */}
-            <div className="mt-5 flex items-start gap-3">
-              <input
-                id="terms"
-                type="checkbox"
-                className="mt-1 h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
-              />
-
-              <label
-                htmlFor="terms"
-                className="text-xs leading-5 text-slate-500"
-              >
-                I agree to the{" "}
-                <span className="font-semibold text-indigo-600">
-                  Terms of Service
-                </span>{" "}
-                and{" "}
-                <span className="font-semibold text-indigo-600">
-                  Privacy Policy
+                <span className="leading-6">
+                  I agree to the{" "}
+                  <Link
+                    href="#"
+                    className="font-medium text-indigo-600 hover:text-indigo-700"
+                  >
+                    Terms of Service
+                  </Link>{" "}
+                  and{" "}
+                  <Link
+                    href="#"
+                    className="font-medium text-indigo-600 hover:text-indigo-700"
+                  >
+                    Privacy Policy
+                  </Link>
+                  .
                 </span>
-                .
               </label>
-            </div>
 
-            {/* Create Account */}
-            <button
-              type="button"
-              className="mt-7 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#111827] text-sm font-semibold text-white transition hover:bg-slate-800"
-            >
-              Create account
-              <ArrowRight size={17} />
-            </button>
+              {/* Error */}
+              {error && (
+                <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+                  {error}
+                </div>
+              )}
+
+              {/* Submit */}
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full rounded-xl bg-slate-900 px-4 py-3.5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {loading ? "Sending OTP..." : "Create account"}
+              </button>
+            </form>
 
             {/* Login */}
             <p className="mt-6 text-center text-sm text-slate-500">
@@ -240,10 +337,10 @@ export default function RegisterPage() {
           {/* Security */}
           <div className="mt-6 flex items-center justify-center gap-2 text-xs text-slate-400">
             <ShieldCheck size={15} />
-            Your information is protected with secure authentication.
+            Your information is securely protected.
           </div>
         </div>
-      </section>
+      </div>
     </main>
   );
 }
