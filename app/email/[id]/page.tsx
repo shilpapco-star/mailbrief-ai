@@ -1,19 +1,25 @@
 "use client";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 
-import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import {
+  AlertCircle,
   ArrowLeft,
+  BarChart3,
   CalendarDays,
+  Check,
   CheckCircle2,
-  Clock3,
+  ChevronRight,
+  Copy,
+  History,
   Mail,
+  Settings,
   Sparkles,
   User,
-  AlertCircle,
-  Copy,
-  Check,
+  Clock3,
 } from "lucide-react";
+
 import { createClient } from "@/lib/supabase/client";
 
 type Email = {
@@ -72,6 +78,10 @@ export default function EmailDetailsPage() {
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
 
+  // --------------------------------------------------
+  // LOAD EMAIL
+  // --------------------------------------------------
+
   const loadEmail = useCallback(async () => {
     if (!emailId) {
       setError("Email ID is missing.");
@@ -99,14 +109,15 @@ export default function EmailDetailsPage() {
         return;
       }
 
-      const { data: emailData, error: emailError } = await supabase
-        .from("emails")
-        .select(
-          "id, sender, subject, body, summary, priority, sender_intent, created_at"
-        )
-        .eq("id", emailId)
-        .eq("user_id", user.id)
-        .maybeSingle();
+      const { data: emailData, error: emailError } =
+        await supabase
+          .from("emails")
+          .select(
+            "id, sender, subject, body, summary, priority, sender_intent, created_at"
+          )
+          .eq("id", emailId)
+          .eq("user_id", user.id)
+          .maybeSingle();
 
       if (emailError) {
         console.error("Email query error:", emailError);
@@ -154,11 +165,17 @@ export default function EmailDetailsPage() {
       ]);
 
       if (keyPointsResult.error) {
-        console.error("Key points error:", keyPointsResult.error);
+        console.error(
+          "Key points error:",
+          keyPointsResult.error
+        );
       }
 
       if (actionItemsResult.error) {
-        console.error("Action items error:", actionItemsResult.error);
+        console.error(
+          "Action items error:",
+          actionItemsResult.error
+        );
       }
 
       if (datesResult.error) {
@@ -190,6 +207,10 @@ export default function EmailDetailsPage() {
     loadEmail();
   }, [loadEmail]);
 
+  // --------------------------------------------------
+  // TOGGLE ACTION ITEM
+  // --------------------------------------------------
+
   async function toggleActionItem(
     actionId: string,
     currentStatus: boolean
@@ -204,7 +225,10 @@ export default function EmailDetailsPage() {
       .eq("id", actionId);
 
     if (updateError) {
-      console.error("Action update error:", updateError);
+      console.error(
+        "Action update error:",
+        updateError
+      );
       return;
     }
 
@@ -220,11 +244,17 @@ export default function EmailDetailsPage() {
     );
   }
 
+  // --------------------------------------------------
+  // COPY REPLY
+  // --------------------------------------------------
+
   async function copyReply() {
     if (!suggestedReply?.reply) return;
 
     try {
-      await navigator.clipboard.writeText(suggestedReply.reply);
+      await navigator.clipboard.writeText(
+        suggestedReply.reply
+      );
 
       setCopied(true);
 
@@ -236,6 +266,10 @@ export default function EmailDetailsPage() {
     }
   }
 
+  // --------------------------------------------------
+  // FORMAT DATE
+  // --------------------------------------------------
+
   function formatDate(date: string) {
     return new Date(date).toLocaleString("en-IN", {
       day: "2-digit",
@@ -245,6 +279,10 @@ export default function EmailDetailsPage() {
       minute: "2-digit",
     });
   }
+
+  // --------------------------------------------------
+  // PRIORITY STYLE
+  // --------------------------------------------------
 
   function getPriorityClass(priority: string) {
     switch (priority) {
@@ -262,340 +300,589 @@ export default function EmailDetailsPage() {
     }
   }
 
+  // --------------------------------------------------
+  // LOADING
+  // --------------------------------------------------
+
   if (loading) {
     return (
-      <main className="min-h-screen bg-slate-50 px-4 py-10 text-slate-900 transition-colors dark:bg-slate-950 dark:text-slate-100">
-        <div className="mx-auto max-w-5xl">
-          <div className="mb-6 flex items-center gap-3">
-            <div className="h-8 w-8 animate-pulse rounded-lg bg-slate-200 dark:bg-slate-800" />
+      <main className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
+        <div className="flex min-h-screen">
 
-            <div className="h-5 w-40 animate-pulse rounded bg-slate-200 dark:bg-slate-800" />
-          </div>
+          <DashboardSidebar />
 
-          <div className="space-y-6">
-            <div className="h-48 animate-pulse rounded-3xl bg-white shadow-sm dark:bg-slate-900" />
+          <section className="min-w-0 flex-1">
+            <MobileHeader />
 
-            <div className="h-64 animate-pulse rounded-3xl bg-white shadow-sm dark:bg-slate-900" />
+            <div className="mx-auto max-w-6xl px-5 py-8 sm:px-8 lg:py-10">
+              <div className="mb-6 flex items-center gap-3">
+                <div className="h-8 w-8 animate-pulse rounded-lg bg-slate-200 dark:bg-slate-800" />
 
-            <div className="grid gap-6 md:grid-cols-2">
-              <div className="h-60 animate-pulse rounded-3xl bg-white shadow-sm dark:bg-slate-900" />
+                <div className="h-5 w-40 animate-pulse rounded bg-slate-200 dark:bg-slate-800" />
+              </div>
 
-              <div className="h-60 animate-pulse rounded-3xl bg-white shadow-sm dark:bg-slate-900" />
+              <div className="space-y-6">
+                <div className="h-48 animate-pulse rounded-3xl bg-white shadow-sm dark:bg-slate-900" />
+
+                <div className="h-64 animate-pulse rounded-3xl bg-white shadow-sm dark:bg-slate-900" />
+
+                <div className="grid gap-6 md:grid-cols-2">
+                  <div className="h-60 animate-pulse rounded-3xl bg-white shadow-sm dark:bg-slate-900" />
+
+                  <div className="h-60 animate-pulse rounded-3xl bg-white shadow-sm dark:bg-slate-900" />
+                </div>
+              </div>
             </div>
-          </div>
+          </section>
         </div>
       </main>
     );
   }
+
+  // --------------------------------------------------
+  // ERROR
+  // --------------------------------------------------
 
   if (error || !email) {
     return (
-      <main className="min-h-screen bg-slate-50 px-4 py-10 text-slate-900 transition-colors dark:bg-slate-950 dark:text-slate-100">
-        <div className="mx-auto max-w-3xl">
-          <button
-            type="button"
-            onClick={() => router.push("/history")}
-            className="mb-6 flex items-center gap-2 text-sm font-medium text-slate-600 transition hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
-          >
-            <ArrowLeft size={18} />
-            Back to History
-          </button>
+      <main className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
+        <div className="flex min-h-screen">
 
-          <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-red-700 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-300">
-            <div className="flex items-center gap-3">
-              <AlertCircle size={20} />
+          <DashboardSidebar />
 
-              <p>{error || "Email not found."}</p>
+          <section className="min-w-0 flex-1">
+            <MobileHeader />
+
+            <div className="mx-auto max-w-4xl px-5 py-8 sm:px-8 lg:py-10">
+
+              <button
+                type="button"
+                onClick={() => router.push("/history")}
+                className="mb-6 flex items-center gap-2 text-sm font-medium text-slate-600 transition hover:text-slate-950 dark:text-slate-400 dark:hover:text-white"
+              >
+                <ArrowLeft size={18} />
+                Back to History
+              </button>
+
+              <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-red-700 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-300">
+                <div className="flex items-center gap-3">
+                  <AlertCircle size={20} />
+
+                  <p>
+                    {error || "Email not found."}
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={loadEmail}
+                  className="mt-4 rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700"
+                >
+                  Try Again
+                </button>
+              </div>
             </div>
-
-            <button
-              type="button"
-              onClick={loadEmail}
-              className="mt-4 rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700"
-            >
-              Try Again
-            </button>
-          </div>
+          </section>
         </div>
       </main>
     );
   }
 
+  // --------------------------------------------------
+  // MAIN PAGE
+  // --------------------------------------------------
+
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-8 text-slate-900 transition-colors dark:bg-slate-950 dark:text-slate-100 md:px-8">
-      <div className="mx-auto max-w-6xl">
+    <main className="min-h-screen bg-slate-50 text-slate-900 transition-colors dark:bg-slate-950 dark:text-slate-100">
+      <div className="flex min-h-screen">
 
-        {/* Back */}
-        <button
-          type="button"
-          onClick={() => router.push("/history")}
-          className="mb-6 flex items-center gap-2 text-sm font-medium text-slate-600 transition hover:text-slate-950 dark:text-slate-400 dark:hover:text-white"
-        >
-          <ArrowLeft size={18} />
-          Back to History
-        </button>
+        {/* SHARED SIDEBAR */}
 
-        {/* Header */}
-        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition-colors dark:border-slate-800 dark:bg-slate-900 md:p-8">
-          <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start">
+        <DashboardSidebar />
+
+        {/* MAIN */}
+
+        <section className="min-w-0 flex-1">
+
+          <MobileHeader />
+
+          {/* DESKTOP TOP BAR */}
+
+          <div className="hidden h-20 items-center justify-between border-b border-slate-200 bg-white px-8 dark:border-slate-800 dark:bg-slate-900 lg:flex">
             <div>
-              <div className="mb-3 flex flex-wrap items-center gap-2">
-                <span
-                  className={`rounded-full px-3 py-1 text-xs font-semibold ${getPriorityClass(
-                    email.priority
-                  )}`}
-                >
-                  {email.priority}
-                </span>
+              <p className="text-sm font-medium text-slate-400">
+                Email Intelligence
+              </p>
 
-                {email.sender_intent && (
-                  <span className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300">
-                    {email.sender_intent}
-                  </span>
-                )}
-              </div>
-
-              <h1 className="text-2xl font-bold tracking-tight text-slate-950 dark:text-white md:text-3xl">
-                {email.subject}
-              </h1>
-
-              <div className="mt-4 flex flex-col gap-2 text-sm text-slate-500 dark:text-slate-400 md:flex-row md:items-center md:gap-5">
-                <span className="flex items-center gap-2">
-                  <User size={16} />
-                  {email.sender}
-                </span>
-
-                <span className="flex items-center gap-2">
-                  <Clock3 size={16} />
-                  {formatDate(email.created_at)}
-                </span>
-              </div>
-            </div>
-
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 dark:bg-indigo-950/60 dark:text-indigo-400">
-              <Mail size={24} />
-            </div>
-          </div>
-        </section>
-
-        {/* Original Email */}
-        <section className="mt-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition-colors dark:border-slate-800 dark:bg-slate-900 md:p-8">
-          <div className="mb-5 flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-800">
-              <Mail size={19} className="text-slate-700 dark:text-slate-300" />
-            </div>
-
-            <div>
-              <h2 className="font-semibold text-slate-950 dark:text-white">
-                Original Email
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+                Email Details
               </h2>
-
-              <p className="text-sm text-slate-500 dark:text-slate-400">
-                Full email content
-              </p>
-            </div>
-          </div>
-
-          <div className="whitespace-pre-wrap rounded-2xl bg-slate-50 p-5 text-sm leading-7 text-slate-700 dark:bg-slate-800/70 dark:text-slate-300">
-            {email.body}
-          </div>
-        </section>
-
-        {/* AI Summary */}
-        <section className="mt-6 rounded-3xl border border-indigo-100 bg-indigo-50/60 p-6 shadow-sm transition-colors dark:border-indigo-900/50 dark:bg-indigo-950/30 md:p-8">
-          <div className="mb-5 flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-100 dark:bg-indigo-950/70">
-              <Sparkles
-                size={19}
-                className="text-indigo-600 dark:text-indigo-400"
-              />
             </div>
 
-            <div>
-              <h2 className="font-semibold text-slate-950 dark:text-white">
-                AI Summary
-              </h2>
-
-              <p className="text-sm text-slate-500 dark:text-slate-400">
-                Generated by MailBrief Gemini AI
-              </p>
-            </div>
+            <Link
+              href="/history"
+              className="flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+            >
+              <History size={16} />
+              Email History
+            </Link>
           </div>
 
-          <p className="text-base leading-7 text-slate-700 dark:text-slate-300">
-            {email.summary}
-          </p>
-        </section>
+          {/* PAGE CONTENT */}
 
-        {/* Key Points + Dates */}
-        <div className="mt-6 grid gap-6 lg:grid-cols-2">
+          <div className="mx-auto max-w-6xl px-5 py-8 sm:px-8 lg:py-10">
 
-          {/* Key Points */}
-          <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition-colors dark:border-slate-800 dark:bg-slate-900">
-            <h2 className="mb-5 text-lg font-semibold text-slate-950 dark:text-white">
-              Key Points
-            </h2>
+            {/* BACK */}
 
-            {keyPoints.length === 0 ? (
-              <p className="text-sm text-slate-500 dark:text-slate-400">
-                No key points were extracted.
-              </p>
-            ) : (
-              <div className="space-y-3">
-                {keyPoints.map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex gap-3 rounded-xl bg-slate-50 p-4 dark:bg-slate-800/70"
-                  >
-                    <div className="mt-1 h-2 w-2 shrink-0 rounded-full bg-indigo-500" />
+            <button
+              type="button"
+              onClick={() => router.push("/history")}
+              className="mb-6 flex items-center gap-2 text-sm font-medium text-slate-600 transition hover:text-slate-950 dark:text-slate-400 dark:hover:text-white"
+            >
+              <ArrowLeft size={18} />
+              Back to History
+            </button>
 
-                    <p className="text-sm leading-6 text-slate-700 dark:text-slate-300">
-                      {item.point}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
+            {/* EMAIL HEADER */}
 
-          {/* Important Dates */}
-          <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition-colors dark:border-slate-800 dark:bg-slate-900">
-            <h2 className="mb-5 text-lg font-semibold text-slate-950 dark:text-white">
-              Important Dates
-            </h2>
+            <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 md:p-8">
+              <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start">
 
-            {importantDates.length === 0 ? (
-              <p className="text-sm text-slate-500 dark:text-slate-400">
-                No important dates were found.
-              </p>
-            ) : (
-              <div className="space-y-3">
-                {importantDates.map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex gap-3 rounded-xl bg-slate-50 p-4 dark:bg-slate-800/70"
-                  >
-                    <CalendarDays
-                      size={19}
-                      className="mt-0.5 shrink-0 text-indigo-600 dark:text-indigo-400"
-                    />
+                <div>
+                  <div className="mb-3 flex flex-wrap items-center gap-2">
 
-                    <div>
-                      <p className="text-sm font-semibold text-slate-900 dark:text-slate-200">
-                        {item.date_text}
-                      </p>
-
-                      <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-                        {item.description}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
-        </div>
-
-        {/* Action Items */}
-        <section className="mt-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition-colors dark:border-slate-800 dark:bg-slate-900 md:p-8">
-          <h2 className="mb-5 text-lg font-semibold text-slate-950 dark:text-white">
-            Action Items
-          </h2>
-
-          {actionItems.length === 0 ? (
-            <p className="text-sm text-slate-500 dark:text-slate-400">
-              No action items were identified.
-            </p>
-          ) : (
-            <div className="space-y-3">
-              {actionItems.map((item) => (
-                <button
-                  type="button"
-                  key={item.id}
-                  onClick={() =>
-                    toggleActionItem(item.id, item.completed)
-                  }
-                  className="flex w-full items-start gap-3 rounded-xl bg-slate-50 p-4 text-left transition hover:bg-slate-100 dark:bg-slate-800/70 dark:hover:bg-slate-800"
-                >
-                  <CheckCircle2
-                    size={20}
-                    className={
-                      item.completed
-                        ? "mt-0.5 shrink-0 text-green-600 dark:text-green-400"
-                        : "mt-0.5 shrink-0 text-slate-300 dark:text-slate-600"
-                    }
-                  />
-
-                  <div className="flex-1">
-                    <p
-                      className={`text-sm leading-6 ${
-                        item.completed
-                          ? "text-slate-400 line-through"
-                          : "text-slate-700 dark:text-slate-300"
-                      }`}
+                    <span
+                      className={`rounded-full px-3 py-1 text-xs font-semibold ${getPriorityClass(
+                        email.priority
+                      )}`}
                     >
-                      {item.task}
-                    </p>
+                      {email.priority}
+                    </span>
 
-                    {item.deadline && (
-                      <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                        Deadline: {item.deadline}
-                      </p>
+                    {email.sender_intent && (
+                      <span className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300">
+                        {email.sender_intent}
+                      </span>
                     )}
                   </div>
-                </button>
-              ))}
-            </div>
-          )}
-        </section>
 
-        {/* Suggested Reply */}
-        <section className="mt-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition-colors dark:border-slate-800 dark:bg-slate-900 md:p-8">
-          <div className="mb-5 flex items-center justify-between gap-4">
-            <div>
-              <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
-                Suggested Reply
+                  <h1 className="text-2xl font-bold tracking-tight text-slate-950 dark:text-white md:text-3xl">
+                    {email.subject}
+                  </h1>
+
+                  <div className="mt-4 flex flex-col gap-2 text-sm text-slate-500 dark:text-slate-400 md:flex-row md:items-center md:gap-5">
+                    <span className="flex items-center gap-2">
+                      <User size={16} />
+                      {email.sender}
+                    </span>
+
+                    <span className="flex items-center gap-2">
+                      <Clock3 size={16} />
+                      {formatDate(email.created_at)}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 dark:bg-indigo-950/60 dark:text-indigo-400">
+                  <Mail size={24} />
+                </div>
+              </div>
+            </section>
+
+            {/* ORIGINAL EMAIL */}
+
+            <section className="mt-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 md:p-8">
+
+              <div className="mb-5 flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-800">
+                  <Mail
+                    size={19}
+                    className="text-slate-700 dark:text-slate-300"
+                  />
+                </div>
+
+                <div>
+                  <h2 className="font-semibold text-slate-950 dark:text-white">
+                    Original Email
+                  </h2>
+
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                    Full email content
+                  </p>
+                </div>
+              </div>
+
+              <div className="whitespace-pre-wrap rounded-2xl bg-slate-50 p-5 text-sm leading-7 text-slate-700 dark:bg-slate-800/70 dark:text-slate-300">
+                {email.body}
+              </div>
+            </section>
+
+            {/* AI SUMMARY */}
+
+            <section className="mt-6 rounded-3xl border border-indigo-100 bg-indigo-50/60 p-6 shadow-sm dark:border-indigo-900/50 dark:bg-indigo-950/30 md:p-8">
+
+              <div className="mb-5 flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-100 dark:bg-indigo-950/70">
+                  <Sparkles
+                    size={19}
+                    className="text-indigo-600 dark:text-indigo-400"
+                  />
+                </div>
+
+                <div>
+                  <h2 className="font-semibold text-slate-950 dark:text-white">
+                    AI Summary
+                  </h2>
+
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                    Generated by MailBrief Gemini AI
+                  </p>
+                </div>
+              </div>
+
+              <p className="text-base leading-7 text-slate-700 dark:text-slate-300">
+                {email.summary}
+              </p>
+            </section>
+
+            {/* KEY POINTS + DATES */}
+
+            <div className="mt-6 grid gap-6 lg:grid-cols-2">
+
+              {/* KEY POINTS */}
+
+              <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+
+                <h2 className="mb-5 text-lg font-semibold text-slate-950 dark:text-white">
+                  Key Points
+                </h2>
+
+                {keyPoints.length === 0 ? (
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                    No key points were extracted.
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    {keyPoints.map((item) => (
+                      <div
+                        key={item.id}
+                        className="flex gap-3 rounded-xl bg-slate-50 p-4 dark:bg-slate-800/70"
+                      >
+                        <div className="mt-1 h-2 w-2 shrink-0 rounded-full bg-indigo-500" />
+
+                        <p className="text-sm leading-6 text-slate-700 dark:text-slate-300">
+                          {item.point}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
+
+              {/* IMPORTANT DATES */}
+
+              <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+
+                <h2 className="mb-5 text-lg font-semibold text-slate-950 dark:text-white">
+                  Important Dates
+                </h2>
+
+                {importantDates.length === 0 ? (
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                    No important dates were found.
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    {importantDates.map((item) => (
+                      <div
+                        key={item.id}
+                        className="flex gap-3 rounded-xl bg-slate-50 p-4 dark:bg-slate-800/70"
+                      >
+                        <CalendarDays
+                          size={19}
+                          className="mt-0.5 shrink-0 text-indigo-600 dark:text-indigo-400"
+                        />
+
+                        <div>
+                          <p className="text-sm font-semibold text-slate-900 dark:text-slate-200">
+                            {item.date_text}
+                          </p>
+
+                          <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+                            {item.description}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
+            </div>
+
+            {/* ACTION ITEMS */}
+
+            <section className="mt-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 md:p-8">
+
+              <h2 className="mb-5 text-lg font-semibold text-slate-950 dark:text-white">
+                Action Items
               </h2>
 
-              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                AI-generated professional response
-              </p>
-            </div>
+              {actionItems.length === 0 ? (
+                <p className="text-sm text-slate-500 dark:text-slate-400">
+                  No action items were identified.
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {actionItems.map((item) => (
+                    <button
+                      type="button"
+                      key={item.id}
+                      onClick={() =>
+                        toggleActionItem(
+                          item.id,
+                          item.completed
+                        )
+                      }
+                      className="flex w-full items-start gap-3 rounded-xl bg-slate-50 p-4 text-left transition hover:bg-slate-100 dark:bg-slate-800/70 dark:hover:bg-slate-800"
+                    >
+                      <CheckCircle2
+                        size={20}
+                        className={
+                          item.completed
+                            ? "mt-0.5 shrink-0 text-green-600 dark:text-green-400"
+                            : "mt-0.5 shrink-0 text-slate-300 dark:text-slate-600"
+                        }
+                      />
 
-            {suggestedReply && (
-              <button
-                type="button"
-                onClick={copyReply}
-                className="flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
-              >
-                {copied ? (
-                  <>
-                    <Check size={16} />
-                    Copied
-                  </>
-                ) : (
-                  <>
-                    <Copy size={16} />
-                    Copy
-                  </>
+                      <div className="flex-1">
+                        <p
+                          className={`text-sm leading-6 ${
+                            item.completed
+                              ? "text-slate-400 line-through"
+                              : "text-slate-700 dark:text-slate-300"
+                          }`}
+                        >
+                          {item.task}
+                        </p>
+
+                        {item.deadline && (
+                          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                            Deadline: {item.deadline}
+                          </p>
+                        )}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </section>
+
+            {/* SUGGESTED REPLY */}
+
+            <section className="mt-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 md:p-8">
+
+              <div className="mb-5 flex items-center justify-between gap-4">
+
+                <div>
+                  <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
+                    Suggested Reply
+                  </h2>
+
+                  <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                    AI-generated professional response
+                  </p>
+                </div>
+
+                {suggestedReply && (
+                  <button
+                    type="button"
+                    onClick={copyReply}
+                    className="flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+                  >
+                    {copied ? (
+                      <>
+                        <Check size={16} />
+                        Copied
+                      </>
+                    ) : (
+                      <>
+                        <Copy size={16} />
+                        Copy
+                      </>
+                    )}
+                  </button>
                 )}
-              </button>
-            )}
-          </div>
+              </div>
 
-          {suggestedReply ? (
-            <div className="rounded-2xl bg-slate-50 p-5 dark:bg-slate-800/70">
-              <p className="whitespace-pre-wrap text-sm leading-7 text-slate-700 dark:text-slate-300">
-                {suggestedReply.reply}
-              </p>
+              {suggestedReply ? (
+                <div className="rounded-2xl bg-slate-50 p-5 dark:bg-slate-800/70">
+                  <p className="whitespace-pre-wrap text-sm leading-7 text-slate-700 dark:text-slate-300">
+                    {suggestedReply.reply}
+                  </p>
+                </div>
+              ) : (
+                <p className="text-sm text-slate-500 dark:text-slate-400">
+                  No suggested reply is available.
+                </p>
+              )}
+            </section>
+
+            {/* FOOTER */}
+
+            <div className="py-10 text-center text-xs text-slate-400">
+              MailBrief AI · Your email, understood.
             </div>
-          ) : (
-            <p className="text-sm text-slate-500 dark:text-slate-400">
-              No suggested reply is available.
-            </p>
-          )}
+          </div>
         </section>
       </div>
     </main>
+  );
+}
+
+/* ==================================================
+   MOBILE HEADER
+================================================== */
+
+function MobileHeader() {
+  return (
+    <header className="flex h-16 items-center justify-between border-b border-slate-200 bg-white px-5 dark:border-slate-800 dark:bg-slate-900 lg:hidden">
+      <Link
+        href="/"
+        className="flex items-center gap-2"
+      >
+        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#111827] text-white dark:bg-indigo-600">
+          <Mail size={18} />
+        </div>
+
+        <span className="font-bold text-slate-900 dark:text-white">
+          MailBrief
+          <span className="text-indigo-600"> AI</span>
+        </span>
+      </Link>
+
+      <Link
+        href="/history"
+        className="rounded-xl p-2 text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+      >
+        <History size={20} />
+      </Link>
+    </header>
+  );
+}
+
+/* ==================================================
+   DASHBOARD SIDEBAR
+================================================== */
+
+function DashboardSidebar() {
+  return (
+    <aside className="hidden w-64 shrink-0 border-r border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 lg:block">
+      <div className="flex min-h-screen flex-col">
+
+        {/* LOGO */}
+
+        <div className="flex h-20 items-center border-b border-slate-100 px-6 dark:border-slate-800">
+          <Link
+            href="/"
+            className="flex items-center gap-3"
+          >
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#111827] text-white dark:bg-indigo-600">
+              <Mail size={20} />
+            </div>
+
+            <div>
+              <p className="font-bold tracking-tight text-slate-900 dark:text-white">
+                MailBrief
+                <span className="text-indigo-600"> AI</span>
+              </p>
+
+              <p className="text-[9px] uppercase tracking-[0.15em] text-slate-400">
+                AI Email Intelligence
+              </p>
+            </div>
+          </Link>
+        </div>
+
+        {/* NAVIGATION */}
+
+        <nav className="flex-1 space-y-2 p-4">
+
+          <DashboardLink
+            href="/analyzer"
+            icon={<Sparkles size={18} />}
+            label="Email Analyzer"
+          />
+
+          <DashboardLink
+            href="/history"
+            icon={<History size={18} />}
+            label="Email History"
+          />
+
+          <DashboardLink
+            href="/analytics"
+            icon={<BarChart3 size={18} />}
+            label="Analytics"
+          />
+
+          <DashboardLink
+            href="/settings"
+            icon={<Settings size={18} />}
+            label="Settings"
+          />
+
+          <DashboardLink
+            href="/"
+            icon={<ArrowLeft size={18} />}
+            label="Back to Home"
+          />
+        </nav>
+
+        {/* USER */}
+
+        <div className="border-t border-slate-100 p-4 dark:border-slate-800">
+          <div className="flex items-center gap-3 rounded-xl bg-slate-50 p-3 dark:bg-slate-800">
+
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-indigo-100 text-sm font-bold text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-400">
+              SP
+            </div>
+
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold text-slate-800 dark:text-slate-100">
+                User
+              </p>
+
+              <p className="truncate text-xs text-slate-400">
+                Free workspace
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </aside>
+  );
+}
+
+/* ==================================================
+   DASHBOARD LINK
+================================================== */
+
+function DashboardLink({
+  href,
+  icon,
+  label,
+}: {
+  href: string;
+  icon: ReactNode;
+  label: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-slate-500 transition hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white"
+    >
+      {icon}
+      {label}
+    </Link>
   );
 }
