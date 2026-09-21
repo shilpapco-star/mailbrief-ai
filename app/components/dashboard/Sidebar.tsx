@@ -9,10 +9,16 @@ import {
   Sparkles,
 } from "lucide-react";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 
 export default function Sidebar() {
   const pathname = usePathname();
+
+  const [userName, setUserName] = useState("User");
+  const [userEmail, setUserEmail] = useState("Free workspace");
+  const [initials, setInitials] = useState("U");
 
   const navigation = [
     {
@@ -36,6 +42,53 @@ export default function Sidebar() {
       icon: Settings,
     },
   ];
+
+  useEffect(() => {
+    async function loadUser() {
+      const supabase = createClient();
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        return;
+      }
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      const name =
+        profile?.full_name ||
+        user.user_metadata?.full_name ||
+        user.email?.split("@")[0] ||
+        "User";
+
+      const email = user.email || "Free workspace";
+
+      setUserName(name);
+      setUserEmail(email);
+
+      const nameParts = name.trim().split(/\s+/);
+
+      let userInitials = "U";
+
+      if (nameParts.length >= 2) {
+        userInitials =
+          nameParts[0][0].toUpperCase() +
+          nameParts[nameParts.length - 1][0].toUpperCase();
+      } else if (nameParts[0]) {
+        userInitials = nameParts[0].slice(0, 2).toUpperCase();
+      }
+
+      setInitials(userInitials);
+    }
+
+    loadUser();
+  }, []);
 
   return (
     <aside className="hidden w-64 shrink-0 border-r border-slate-200 bg-white transition-colors duration-300 dark:border-slate-800 dark:bg-slate-900 lg:block">
@@ -95,17 +148,19 @@ export default function Sidebar() {
         {/* User */}
         <div className="border-t border-slate-100 p-4 dark:border-slate-800">
           <div className="flex items-center gap-3 rounded-xl bg-slate-50 p-3 dark:bg-slate-800">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-indigo-100 text-sm font-bold text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-400">
-              SP
+            {/* Initials */}
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-sm font-bold text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-400">
+              {initials}
             </div>
 
+            {/* Name + Email */}
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold text-slate-800 dark:text-slate-100">
-                User
+                {userName}
               </p>
 
               <p className="truncate text-xs text-slate-400">
-                Free workspace
+                {userEmail}
               </p>
             </div>
           </div>
