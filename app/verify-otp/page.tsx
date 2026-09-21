@@ -1,63 +1,59 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import {
+  ArrowLeft,
+  CheckCircle2,
+  Loader2,
+  Mail,
+  RefreshCw,
+  ShieldCheck,
+} from "lucide-react";
 import Link from "next/link";
-import { Mail, ShieldCheck } from "lucide-react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
-export default function VerifyOtpPage() {
-  const searchParams = useSearchParams();
+function VerifyOtpContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
 
-  const email = searchParams.get("email") || "";
-
-  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
+  const [email, setEmail] = useState("");
+  const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
-
-  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const [verified, setVerified] = useState(false);
 
   useEffect(() => {
-    inputRefs.current[0]?.focus();
-  }, []);
+    const emailFromUrl = searchParams.get("email");
 
-  function handleOtpChange(index: number, value: string) {
-    const digit = value.replace(/\D/g, "").slice(-1);
-
-    const newOtp = [...otp];
-    newOtp[index] = digit;
-    setOtp(newOtp);
-
-    if (digit && index < 5) {
-      inputRefs.current[index + 1]?.focus();
+    if (emailFromUrl) {
+      setEmail(emailFromUrl);
     }
-  }
+  }, [searchParams]);
 
-  function handleKeyDown(
-    index: number,
-    event: React.KeyboardEvent<HTMLInputElement>
-  ) {
-    if (event.key === "Backspace" && !otp[index] && index > 0) {
-      inputRefs.current[index - 1]?.focus();
-    }
-  }
+  async function handleVerify(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
 
-  async function handleVerify() {
     setError("");
     setMessage("");
 
-    const token = otp.join("");
+    const trimmedEmail = email.trim();
+    const trimmedOtp = otp.trim();
 
-    if (!email) {
-      setError("Email address is missing. Please register again.");
+    if (!trimmedEmail) {
+      setError("Please enter your email address.");
       return;
     }
 
-    if (token.length !== 6) {
-      setError("Please enter the complete 6-digit verification code.");
+    if (!trimmedOtp) {
+      setError("Please enter the verification code.");
+      return;
+    }
+
+    if (!/^\d{6}$/.test(trimmedOtp)) {
+      setError("Please enter a valid 6-digit verification code.");
       return;
     }
 
@@ -67,9 +63,9 @@ export default function VerifyOtpPage() {
       const supabase = createClient();
 
       const { error: verifyError } = await supabase.auth.verifyOtp({
-        email,
-        token,
-        type: "email",
+        email: trimmedEmail,
+        token: trimmedOtp,
+        type: "signup",
       });
 
       if (verifyError) {
@@ -77,9 +73,15 @@ export default function VerifyOtpPage() {
         return;
       }
 
-      router.push("/analyzer");
+      setVerified(true);
+
+      setMessage("Email verified successfully.");
+
+      setTimeout(() => {
+        router.push("/analyzer");
+      }, 1000);
     } catch {
-      setError("Something went wrong. Please try again.");
+      setError("Something went wrong while verifying your email.");
     } finally {
       setLoading(false);
     }
@@ -89,8 +91,10 @@ export default function VerifyOtpPage() {
     setError("");
     setMessage("");
 
-    if (!email) {
-      setError("Email address is missing. Please register again.");
+    const trimmedEmail = email.trim();
+
+    if (!trimmedEmail) {
+      setError("Please enter your email address first.");
       return;
     }
 
@@ -99,11 +103,9 @@ export default function VerifyOtpPage() {
 
       const supabase = createClient();
 
-      const { error: resendError } = await supabase.auth.signInWithOtp({
-        email,
-        options: {
-          shouldCreateUser: false,
-        },
+      const { error: resendError } = await supabase.auth.resend({
+        type: "signup",
+        email: trimmedEmail,
       });
 
       if (resendError) {
@@ -111,126 +113,225 @@ export default function VerifyOtpPage() {
         return;
       }
 
-      setMessage("A new verification code has been sent.");
+      setMessage("A new verification code has been sent to your email.");
     } catch {
-      setError("Unable to resend the code. Please try again.");
+      setError("Unable to resend the verification code.");
     } finally {
       setResending(false);
     }
   }
 
-  return (
-    <main className="min-h-screen bg-slate-50 px-4 py-8 sm:px-6">
-      <div className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-md items-center justify-center">
-        <div className="w-full">
-          {/* Logo */}
-          <div className="mb-8 text-center">
-            <Link
-              href="/"
-              className="inline-flex items-center gap-2 text-xl font-bold text-slate-900"
-            >
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-900 text-sm font-bold text-white">
-                M
-              </div>
-              MailBrief
-            </Link>
+  if (verified) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4 text-slate-900 dark:bg-slate-950 dark:text-white">
+        <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-xl dark:border-slate-800 dark:bg-slate-900">
+          <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-500/10">
+            <CheckCircle2
+              size={32}
+              className="text-emerald-600 dark:text-emerald-400"
+            />
           </div>
 
-          {/* Card */}
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 text-center shadow-sm sm:p-8">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600">
-              <Mail size={26} />
-            </div>
+          <h1 className="text-2xl font-bold">
+            Email verified
+          </h1>
 
-            <h1 className="mt-6 text-2xl font-bold tracking-tight text-slate-900">
-              Check your email
-            </h1>
+          <p className="mt-3 text-sm leading-6 text-slate-500 dark:text-slate-400">
+            Your email has been verified successfully. Redirecting you to
+            MailBrief AI...
+          </p>
 
-            <p className="mt-2 text-sm leading-6 text-slate-500">
-              We sent a 6-digit verification code to
-            </p>
+          <div className="mt-6 flex items-center justify-center gap-2 text-sm text-indigo-600 dark:text-indigo-400">
+            <Loader2 size={16} className="animate-spin" />
+            Opening your analyzer
+          </div>
+        </div>
+      </main>
+    );
+  }
 
-            <p className="mt-1 break-all text-sm font-semibold text-slate-900">
-              {email || "your email address"}
-            </p>
+  return (
+    <main className="min-h-screen bg-slate-50 px-4 py-10 text-slate-900 dark:bg-slate-950 dark:text-white">
+      <div className="mx-auto flex min-h-[calc(100vh-5rem)] max-w-md items-center justify-center">
+        <div className="w-full">
+          <Link
+            href="/register"
+            className="mb-6 inline-flex items-center gap-2 text-sm font-medium text-slate-500 transition hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+          >
+            <ArrowLeft size={16} />
+            Back to registration
+          </Link>
 
-            <div className="mt-8">
-              <p className="mb-4 text-sm font-medium text-slate-700">
-                Enter verification code
+          <div className="rounded-3xl border border-slate-200 bg-white p-7 shadow-xl shadow-slate-200/50 sm:p-8 dark:border-slate-800 dark:bg-slate-900 dark:shadow-none">
+            <div className="mb-8 text-center">
+              <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#111827] text-white shadow-lg dark:bg-indigo-600">
+                <span className="text-xl font-bold">M</span>
+              </div>
+
+              <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+                Verify your email
+              </h1>
+
+              <p className="mx-auto mt-3 max-w-sm text-sm leading-6 text-slate-500 dark:text-slate-400">
+                Enter the 6-digit verification code we sent to your email
+                address.
               </p>
+            </div>
 
-              <div className="flex justify-center gap-2 sm:gap-3">
-                {otp.map((digit, index) => (
-                  <input
-                    key={index}
-                    ref={(element) => {
-                      inputRefs.current[index] = element;
-                    }}
-                    type="text"
-                    inputMode="numeric"
-                    maxLength={1}
-                    value={digit}
-                    onChange={(event) =>
-                      handleOtpChange(index, event.target.value)
-                    }
-                    onKeyDown={(event) => handleKeyDown(index, event)}
-                    className="h-12 w-11 rounded-xl border border-slate-200 bg-white text-center text-lg font-semibold text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 sm:h-14 sm:w-12"
-                  />
-                ))}
+            <div className="mb-6 rounded-2xl border border-indigo-100 bg-indigo-50 p-4 dark:border-indigo-500/20 dark:bg-indigo-500/10">
+              <div className="flex gap-3">
+                <Mail
+                  size={20}
+                  className="mt-0.5 shrink-0 text-indigo-600 dark:text-indigo-400"
+                />
+
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-indigo-700 dark:text-indigo-300">
+                    Verification email
+                  </p>
+
+                  <p className="mt-1 break-all text-sm text-indigo-900 dark:text-indigo-100">
+                    {email || "Enter your email below"}
+                  </p>
+                </div>
               </div>
             </div>
 
-            {error && (
-              <div className="mt-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-left text-sm text-red-600">
-                {error}
+            <form onSubmit={handleVerify} className="space-y-5">
+              <div>
+                <label
+                  htmlFor="email"
+                  className="mb-2 block text-sm font-semibold"
+                >
+                  Email address
+                </label>
+
+                <input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  placeholder="you@example.com"
+                  autoComplete="email"
+                  className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 dark:border-slate-700 dark:bg-slate-950 dark:placeholder:text-slate-600"
+                />
               </div>
-            )}
 
-            {message && (
-              <div className="mt-5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-left text-sm text-emerald-600">
-                {message}
+              <div>
+                <label
+                  htmlFor="otp"
+                  className="mb-2 block text-sm font-semibold"
+                >
+                  Verification code
+                </label>
+
+                <input
+                  id="otp"
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  maxLength={6}
+                  value={otp}
+                  onChange={(event) => {
+                    const value = event.target.value
+                      .replace(/\D/g, "")
+                      .slice(0, 6);
+
+                    setOtp(value);
+                  }}
+                  placeholder="000000"
+                  className="h-14 w-full rounded-xl border border-slate-200 bg-white px-4 text-center text-xl font-semibold tracking-[0.4em] outline-none transition placeholder:text-slate-300 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 dark:border-slate-700 dark:bg-slate-950 dark:placeholder:text-slate-700"
+                />
+
+                <p className="mt-2 text-center text-xs text-slate-400">
+                  Enter the 6-digit code from Supabase Auth email.
+                </p>
               </div>
-            )}
 
-            <button
-              type="button"
-              onClick={handleVerify}
-              disabled={loading}
-              className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-3.5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {loading ? "Verifying..." : "Verify email"}
-            </button>
+              {error && (
+                <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm leading-5 text-red-600 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-400">
+                  {error}
+                </div>
+              )}
 
-            <div className="mt-6">
-              <p className="text-sm text-slate-500">
-                Didn&apos;t receive the code?
+              {message && (
+                <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm leading-5 text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/30 dark:text-emerald-400">
+                  {message}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={loading || otp.length !== 6}
+                className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white shadow-lg shadow-indigo-600/20 transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 size={18} className="animate-spin" />
+                    Verifying...
+                  </>
+                ) : (
+                  <>
+                    <ShieldCheck size={18} />
+                    Verify email
+                  </>
+                )}
+              </button>
+            </form>
+
+            <div className="mt-7 border-t border-slate-100 pt-6 text-center dark:border-slate-800">
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                Didn't receive the code?
               </p>
 
               <button
                 type="button"
                 onClick={handleResend}
                 disabled={resending}
-                className="mt-2 text-sm font-semibold text-indigo-600 hover:text-indigo-700 disabled:opacity-50"
+                className="mt-2 inline-flex items-center gap-2 text-sm font-semibold text-indigo-600 transition hover:text-indigo-700 disabled:cursor-not-allowed disabled:opacity-50 dark:text-indigo-400 dark:hover:text-indigo-300"
               >
-                {resending ? "Sending..." : "Resend code"}
+                {resending ? (
+                  <>
+                    <Loader2 size={15} className="animate-spin" />
+                    Sending...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw size={15} />
+                    Resend verification code
+                  </>
+                )}
               </button>
             </div>
 
-            <Link
-              href="/register"
-              className="mt-6 inline-block text-sm font-medium text-slate-500 hover:text-slate-700"
-            >
-              Use a different email
-            </Link>
+            <div className="mt-6 flex items-center justify-center gap-2 text-xs text-slate-400">
+              <ShieldCheck size={14} />
+              <span>Your verification is securely handled by Supabase.</span>
+            </div>
           </div>
 
-          {/* Security */}
-          <div className="mt-6 flex items-center justify-center gap-2 text-xs text-slate-400">
-            <ShieldCheck size={15} />
-            Your information is securely protected.
-          </div>
+          <p className="mt-6 text-center text-xs text-slate-400">
+            MailBrief AI · Understand every email in seconds.
+          </p>
         </div>
       </div>
     </main>
+  );
+}
+
+export default function VerifyOtpPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="flex min-h-screen items-center justify-center bg-slate-50 dark:bg-slate-950">
+          <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
+            <Loader2 size={18} className="animate-spin" />
+            Loading verification...
+          </div>
+        </main>
+      }
+    >
+      <VerifyOtpContent />
+    </Suspense>
   );
 }
