@@ -1,12 +1,67 @@
 import { NextResponse } from "next/server";
-import { analyzeEmail } from "@/lib/services/ai.service";
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "../../../lib/supabase/server";
+import { analyzeEmail } from "../../../lib/services/ai.service";
+
+function parseEmail(emailText: string) {
+  const text = emailText.trim();
+
+  let sender = "";
+  let subject = "";
+  let body = text;
+
+  // Detect "From:" line
+  const fromMatch = text.match(/^From:\s*(.+)$/im);
+
+  if (fromMatch) {
+    sender = fromMatch[1].trim();
+  }
+
+  // Detect "Subject:" line
+  const subjectMatch = text.match(/^Subject:\s*(.+)$/im);
+
+  if (subjectMatch) {
+    subject = subjectMatch[1].trim();
+  }
+
+  // Remove header lines from the body
+  const lines = text.split(/\r?\n/);
+
+  const bodyLines = lines.filter((line) => {
+    const trimmed = line.trim();
+
+    return (
+      !/^From:\s*/i.test(trimmed) &&
+      !/^Subject:\s*/i.test(trimmed) &&
+      !/^To:\s*/i.test(trimmed) &&
+      !/^Cc:\s*/i.test(trimmed) &&
+      !/^Date:\s*/i.test(trimmed)
+    );
+  });
+
+  body = bodyLines.join("\n").trim();
+
+  // If no subject was detected, create a simple fallback
+  if (!subject) {
+    subject = "Email Analysis";
+  }
+
+  // If no sender was detected, use a neutral fallback
+  if (!sender) {
+    sender = "Unknown Sender";
+  }
+
+  return {
+    sender,
+    subject,
+    body,
+  };
+}
 
 export async function POST(request: Request) {
   try {
-    // 1. Get logged-in user
     const supabase = await createClient();
 
+    // Check logged-in user
     const {
       data: { user },
       error: userError,
@@ -21,143 +76,154 @@ export async function POST(request: Request) {
       );
     }
 
-    // 2. Read request body
-    const body = await request.json();
+    const payload = await request.json();
 
-   const sender = body?.sender || "Unknown";
-const subject = body?.subject || "No subject";
-const emailText = body?.emailText;
+    const emailText =
+      typeof payload?.emailText === "string"
+        ? payload.emailText.trim()
+        : "";
 
-    if (!emailText || typeof emailText !== "string") {
+    if (!emailText) {
       return NextResponse.json(
         {
-          error: "Email content is required.",
+          error: "Please paste an email before analyzing.",
         },
         { status: 400 }
       );
     }
 
-    if (emailText.trim().length < 10) {
+    if (emailText.length < 20) {
       return NextResponse.json(
         {
-          error: "Please provide a longer email to analyze.",
+          error: "The email is too short to analyze.",
         },
         { status: 400 }
       );
     }
 
-    // 3. Analyze email with Gemini
-    const analysis = await analyzeEmail(emailText.trim());
+    // Extract sender, subject and body automatically
+    const parsedEmail = parseEmail(emailText);
 
-    // 4. Save the main email analysis
+    // Send the complete email to Gemini
+   const analysis = await analyzeEmail(
+  `From: ${parsedEmail.sender}
+
+Subject: ${parsedEmail.subject}
+
+${parsedEmail.body}`
+);
+
+    // Save main email
     const { data: savedEmail, error: emailError } = await supabase
-  .from("emails")
-  .insert({
-    user_id: user.id,
-    sender,
-    subject,
-    body: emailText.trim(),
-    summary: analysis.summary,
-    priority: analysis.priority,
-    sender_intent: analysis.category,
-  })
-  .select()
-  .single();
-    if (emailError) {
-      console.error("Email save error:", emailError);
+      .from("emails")
+      .insert({
+        user_id: user.id,
+        sender: parsedEmail.sender,
+        subject: parsedEmail.subject,
+        body: parsedEmail.body,
+        summary: analysis.summary,
+        priority: analysis.priority,
+        sender_intent: analysis.category,
+      })
+      .select("id")
+      .single();
+
+    if (emailError || !savedEmail) {
+      console.error("Email insert error:", emailError);
 
       return NextResponse.json(
         {
-          error: `AI analysis worked, but saving the email failed: ${emailError.message}`,
+          error: "The analysis was completed, but the email could not be saved.",
+          details: emailError?.message,
         },
         { status: 500 }
       );
     }
 
-    // 5. Save key points
-    if (analysis.keyPoints.length > 0) {
-      const { error: keyPointsError } = await supabase
-        .from("email_key_points")
-        .insert(
-          analysis.keyPoints.map((point) => ({
-            email_id: savedEmail.id,
-            point,
-          }))
-        );
+    const emailId = savedEmail.id;
 
-      if (keyPointsError) {
-        console.error("Key points save error:", keyPointsError);
+    // Save key points
+    if (analysis.keyPoints?.length > 0) {
+      const keyPointRows = analysis.keyPoints.map((point) => ({
+        email_id: emailId,
+        point,
+      }));
+
+      const { error } = await supabase
+        .from("email_key_points")
+        .insert(keyPointRows);
+
+      if (error) {
+        console.error("Key points insert error:", error);
       }
     }
 
-    // 6. Save action items
-    if (analysis.actionItems.length > 0) {
-  const { error: actionItemsError } = await supabase
-    .from("email_action_items")
-    .insert(
-      analysis.actionItems.map((item) => ({
-        email_id: savedEmail.id,
-        task: item,
-        deadline: null,
+    // Save action items
+    if (analysis.actionItems?.length > 0) {
+      const actionItemRows = analysis.actionItems.map((item) => ({
+        email_id: emailId,
+        item,
         completed: false,
-      }))
-    );
+      }));
 
-  if (actionItemsError) {
-    console.error("Action items save error:", actionItemsError);
-  }
-}
+      const { error } = await supabase
+        .from("email_action_items")
+        .insert(actionItemRows);
 
-    // 7. Save important dates
-    if (analysis.importantDates.length > 0) {
-  const { error: datesError } = await supabase
-    .from("email_dates")
-    .insert(
-      analysis.importantDates.map((date) => ({
-        email_id: savedEmail.id,
-        date_text: date.date,
-        date_value: null,
-        description: date.description,
-      }))
-    );
+      if (error) {
+        console.error("Action items insert error:", error);
+      }
+    }
 
-  if (datesError) {
-    console.error("Dates save error:", datesError);
-  }
-}
+    // Save important dates
+    if (analysis.importantDates?.length > 0) {
+      const dateRows = analysis.importantDates.map((item) => ({
+        email_id: emailId,
+        date: item.date,
+        description: item.description,
+      }));
 
-    // 8. Save suggested reply
+      const { error } = await supabase
+        .from("email_dates")
+        .insert(dateRows);
+
+      if (error) {
+        console.error("Important dates insert error:", error);
+      }
+    }
+
+    // Save suggested reply
     if (analysis.suggestedReply) {
-      const { error: replyError } = await supabase
+      const { error } = await supabase
         .from("suggested_replies")
         .insert({
-          email_id: savedEmail.id,
+          email_id: emailId,
           reply: analysis.suggestedReply,
         });
 
-      if (replyError) {
-        console.error("Suggested reply save error:", replyError);
+      if (error) {
+        console.error("Suggested reply insert error:", error);
       }
     }
 
-    // 9. Return result to Analyzer UI
-    return NextResponse.json(
-      {
-        success: true,
-        analysis,
-        emailId: savedEmail.id,
+    return NextResponse.json({
+      success: true,
+      emailId,
+      analysis,
+      parsedEmail: {
+        sender: parsedEmail.sender,
+        subject: parsedEmail.subject,
       },
-      { status: 200 }
-    );
+    });
   } catch (error) {
-    console.error("Email analysis error:", error);
+    console.error("Analyze email error:", error);
 
     return NextResponse.json(
       {
         error:
           error instanceof Error
             ? error.message
-            : "Failed to analyze the email.",
+            : "Something went wrong while analyzing the email.",
       },
       { status: 500 }
     );

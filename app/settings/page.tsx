@@ -1,979 +1,943 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
-import Link from "next/link";
 import {
   Bell,
   Bot,
   Check,
-  ChevronRight,
   Eye,
-  EyeOff,
-  Lock,
+  KeyRound,
   LogOut,
-  Mail,
-  Moon,
+  Palette,
+  Save,
   Shield,
   User,
 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
+import DashboardShell from "@/app/components/dashboard/DashboardShell";
 import { createClient } from "@/lib/supabase/client";
-import { useTheme } from "../providers/ThemeProvider";
-import DashboardShell from "../components/dashboard/DashboardShell";
+
+type ThemeMode = "light" | "dark" | "system";
 
 export default function SettingsPage() {
-  const { setTheme } = useTheme();
+  const router = useRouter();
+  const supabase = createClient();
 
-  // --------------------------------------------------
-  // PROFILE
-  // --------------------------------------------------
-
-  const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState("");
-
-  const [loadingProfile, setLoadingProfile] = useState(true);
-  const [savingProfile, setSavingProfile] = useState(false);
-
-  const [profileMessage, setProfileMessage] = useState("");
-  const [profileError, setProfileError] = useState("");
-
-  // --------------------------------------------------
-  // PASSWORD
-  // --------------------------------------------------
-
-  const [showPasswordForm, setShowPasswordForm] = useState(false);
-
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-
-  const [showNewPassword, setShowNewPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] =
-    useState(false);
-
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [changingPassword, setChangingPassword] = useState(false);
 
-  const [passwordMessage, setPasswordMessage] = useState("");
-  const [passwordError, setPasswordError] = useState("");
+  const [message, setMessage] = useState("");
 
-  // --------------------------------------------------
-  // PREFERENCES
-  // --------------------------------------------------
+  const [userId, setUserId] = useState("");
+
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+
+  const [theme, setTheme] = useState<ThemeMode>("light");
 
   const [emailNotifications, setEmailNotifications] =
     useState(true);
 
-  const [weeklyInsights, setWeeklyInsights] = useState(true);
+  const [aiSuggestions, setAiSuggestions] = useState(true);
 
-  const [autoAnalyze, setAutoAnalyze] = useState(false);
-
-  const [darkMode, setDarkMode] = useState(false);
-
-  const [loadingPreferences, setLoadingPreferences] =
-    useState(true);
-
-  const [preferenceMessage, setPreferenceMessage] =
-    useState("");
-
-  const [preferenceError, setPreferenceError] = useState("");
-
-  // --------------------------------------------------
-  // INITIAL LOAD
-  // --------------------------------------------------
+  const [newPassword, setNewPassword] = useState("");
 
   useEffect(() => {
-    loadProfile();
-    loadPreferences();
+    loadSettings();
   }, []);
 
-  // --------------------------------------------------
-  // LOAD PROFILE
-  // --------------------------------------------------
+  /* ==================================================
+     LOAD SETTINGS
+  ================================================== */
 
-  async function loadProfile() {
+  async function loadSettings() {
     try {
-      setLoadingProfile(true);
-      setProfileError("");
-
-      const supabase = createClient();
+      setLoading(true);
 
       const {
         data: { user },
-        error: userError,
       } = await supabase.auth.getUser();
 
-      if (userError || !user) {
-        setProfileError("Unable to load your account.");
+      if (!user) {
+        router.push("/login");
         return;
       }
 
-      setEmail(user.email || "");
+      setUserId(user.id);
+      setEmail(user.email ?? "");
+
+      /* ---------- PROFILE ---------- */
 
       const { data: profile } = await supabase
         .from("profiles")
-        .select("full_name")
+        .select("*")
         .eq("id", user.id)
         .maybeSingle();
 
-      setFullName(
-        profile?.full_name ||
-          user.user_metadata?.full_name ||
-          ""
-      );
-    } catch (error) {
-      console.error("Profile loading error:", error);
-      setProfileError("Unable to load your profile.");
-    } finally {
-      setLoadingProfile(false);
-    }
-  }
+      const metadataName =
+        user.user_metadata?.full_name ||
+        user.user_metadata?.name ||
+        "";
 
-  // --------------------------------------------------
-  // SAVE PROFILE
-  // --------------------------------------------------
+      setName(profile?.full_name || metadataName || "");
 
-  async function saveProfile() {
-    try {
-      setSavingProfile(true);
-      setProfileMessage("");
-      setProfileError("");
+      /* ---------- PREFERENCES ---------- */
 
-      const trimmedName = fullName.trim();
-
-      if (!trimmedName) {
-        setProfileError("Please enter your full name.");
-        return;
-      }
-
-      const supabase = createClient();
-
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser();
-
-      if (userError || !user) {
-        setProfileError("You must be logged in.");
-        return;
-      }
-
-      const { error: updateError } =
-        await supabase.auth.updateUser({
-          data: {
-            full_name: trimmedName,
-          },
-        });
-
-      if (updateError) {
-        setProfileError(updateError.message);
-        return;
-      }
-
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .update({
-          full_name: trimmedName,
-        })
-        .eq("id", user.id);
-
-      if (profileError) {
-        console.error(
-          "Profile database update error:",
-          profileError
-        );
-      }
-
-      setFullName(trimmedName);
-      setProfileMessage("Profile updated successfully.");
-    } catch (error) {
-      console.error("Profile save error:", error);
-      setProfileError("Unable to save your profile.");
-    } finally {
-      setSavingProfile(false);
-    }
-  }
-
-  // --------------------------------------------------
-  // LOAD PREFERENCES
-  // --------------------------------------------------
-
-  async function loadPreferences() {
-    try {
-      setLoadingPreferences(true);
-      setPreferenceError("");
-
-      const supabase = createClient();
-
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser();
-
-      if (userError || !user) {
-        setPreferenceError("Unable to load preferences.");
-        return;
-      }
-
-      const { data, error } = await supabase
+      const { data: preferences } = await supabase
         .from("user_preferences")
-        .select(
-          "email_notifications, weekly_insights, auto_analyze, dark_mode"
-        )
+        .select("*")
         .eq("user_id", user.id)
         .maybeSingle();
 
-      if (error) {
-        console.error("Preferences loading error:", error);
-        setPreferenceError("Unable to load your preferences.");
-        return;
-      }
+      if (preferences) {
+        if (
+          preferences.theme === "light" ||
+          preferences.theme === "dark" ||
+          preferences.theme === "system"
+        ) {
+          setTheme(preferences.theme);
+          applyTheme(preferences.theme);
+        }
 
-      if (!data) {
-        const { error: insertError } = await supabase
-          .from("user_preferences")
-          .insert({
-            user_id: user.id,
-            email_notifications: true,
-            weekly_insights: true,
-            auto_analyze: false,
-            dark_mode: false,
-          });
-
-        if (insertError) {
-          console.error(
-            "Default preferences creation error:",
-            insertError
+        if (
+          typeof preferences.email_notifications ===
+          "boolean"
+        ) {
+          setEmailNotifications(
+            preferences.email_notifications
           );
         }
 
-        setEmailNotifications(true);
-        setWeeklyInsights(true);
-        setAutoAnalyze(false);
-        setDarkMode(false);
-
-        setTheme("light");
-
-        return;
+        if (
+          typeof preferences.ai_suggestions === "boolean"
+        ) {
+          setAiSuggestions(
+            preferences.ai_suggestions
+          );
+        }
+      } else {
+        applyTheme("light");
       }
-
-      setEmailNotifications(data.email_notifications);
-      setWeeklyInsights(data.weekly_insights);
-      setAutoAnalyze(data.auto_analyze);
-      setDarkMode(data.dark_mode);
-
-      setTheme(data.dark_mode ? "dark" : "light");
     } catch (error) {
-      console.error("Preferences loading error:", error);
-      setPreferenceError("Unable to load your preferences.");
+      console.error("Settings load error:", error);
     } finally {
-      setLoadingPreferences(false);
+      setLoading(false);
     }
   }
 
-  // --------------------------------------------------
-  // UPDATE PREFERENCE
-  // --------------------------------------------------
+  /* ==================================================
+     THEME
+  ================================================== */
 
-  async function updatePreference(
-    field:
-      | "email_notifications"
-      | "weekly_insights"
-      | "auto_analyze"
-      | "dark_mode",
-    value: boolean
-  ) {
+  function applyTheme(selectedTheme: ThemeMode) {
+    const root = document.documentElement;
+
+    let darkMode = false;
+
+    if (selectedTheme === "dark") {
+      darkMode = true;
+    }
+
+    if (selectedTheme === "system") {
+      darkMode = window.matchMedia(
+        "(prefers-color-scheme: dark)"
+      ).matches;
+    }
+
+    root.classList.toggle("dark", darkMode);
+  }
+
+  function handleThemeChange(selectedTheme: ThemeMode) {
+    setTheme(selectedTheme);
+    applyTheme(selectedTheme);
+    setMessage("");
+  }
+
+  /* ==================================================
+     SAVE APPEARANCE + PREFERENCES
+  ================================================== */
+
+  async function savePreferences() {
+    if (!userId) return;
+
     try {
-      setPreferenceMessage("");
-      setPreferenceError("");
-
-      const supabase = createClient();
-
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser();
-
-      if (userError || !user) {
-        setPreferenceError("You must be logged in.");
-        return;
-      }
+      setSaving(true);
+      setMessage("");
 
       const { error } = await supabase
         .from("user_preferences")
-        .update({
-          [field]: value,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("user_id", user.id);
+        .upsert(
+          {
+            user_id: userId,
+            theme,
+            email_notifications: emailNotifications,
+            ai_suggestions: aiSuggestions,
+            updated_at: new Date().toISOString(),
+          },
+          {
+            onConflict: "user_id",
+          }
+        );
 
       if (error) {
-        console.error("Preference update error:", error);
-        setPreferenceError("Unable to save this preference.");
+        console.error(error);
+        setMessage(
+          "Could not save your preferences."
+        );
         return;
       }
 
-      setPreferenceMessage("Preference saved.");
+      applyTheme(theme);
+
+      setMessage(
+        "Your preferences have been saved successfully."
+      );
     } catch (error) {
-      console.error("Preference update error:", error);
-      setPreferenceError("Unable to save this preference.");
+      console.error(error);
+
+      setMessage(
+        "Something went wrong while saving."
+      );
+    } finally {
+      setSaving(false);
     }
   }
 
-  // --------------------------------------------------
-  // CHANGE PASSWORD
-  // --------------------------------------------------
+  /* ==================================================
+     SAVE PROFILE
+  ================================================== */
 
-  async function handleChangePassword() {
+  async function saveProfile() {
+    if (!userId) return;
+
     try {
-      setPasswordMessage("");
-      setPasswordError("");
+      setSaving(true);
+      setMessage("");
 
-      if (!newPassword) {
-        setPasswordError("Please enter a new password.");
-        return;
-      }
+      const { error } = await supabase
+        .from("profiles")
+        .upsert(
+          {
+            id: userId,
+            full_name: name.trim(),
+            updated_at: new Date().toISOString(),
+          },
+          {
+            onConflict: "id",
+          }
+        );
 
-      if (newPassword.length < 8) {
-        setPasswordError(
-          "Password must be at least 8 characters long."
+      if (error) {
+        console.error(error);
+        setMessage(
+          "Could not update your profile."
         );
         return;
       }
 
-      if (newPassword !== confirmPassword) {
-        setPasswordError(
-          "New password and confirm password do not match."
-        );
-        return;
-      }
+      await supabase.auth.updateUser({
+        data: {
+          full_name: name.trim(),
+        },
+      });
 
+      setMessage(
+        "Your profile has been updated successfully."
+      );
+    } catch (error) {
+      console.error(error);
+
+      setMessage(
+        "Could not update your profile."
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  /* ==================================================
+     CHANGE PASSWORD
+  ================================================== */
+
+  async function changePassword() {
+    if (newPassword.length < 6) {
+      setMessage(
+        "Password must contain at least 6 characters."
+      );
+      return;
+    }
+
+    try {
       setChangingPassword(true);
-
-      const supabase = createClient();
+      setMessage("");
 
       const { error } = await supabase.auth.updateUser({
         password: newPassword,
       });
 
       if (error) {
-        console.error("Password update error:", error);
-        setPasswordError(error.message);
+        setMessage(error.message);
         return;
       }
 
       setNewPassword("");
-      setConfirmPassword("");
-      setShowNewPassword(false);
-      setShowConfirmPassword(false);
 
-      setPasswordMessage("Password updated successfully.");
-      setShowPasswordForm(false);
+      setMessage(
+        "Your password has been changed successfully."
+      );
     } catch (error) {
-      console.error("Password change error:", error);
+      console.error(error);
 
-      setPasswordError(
-        "Unable to update your password. Please try again."
+      setMessage(
+        "Could not change your password."
       );
     } finally {
       setChangingPassword(false);
     }
   }
 
-  // --------------------------------------------------
-  // DARK MODE
-  // --------------------------------------------------
+  /* ==================================================
+     SIGN OUT
+  ================================================== */
 
-  function handleDarkModeChange() {
-    const newValue = !darkMode;
+  async function signOut() {
+    await supabase.auth.signOut();
 
-    setDarkMode(newValue);
-
-    setTheme(newValue ? "dark" : "light");
-
-    updatePreference("dark_mode", newValue);
+    router.push("/login");
   }
 
-  // --------------------------------------------------
-  // SIGN OUT
-  // --------------------------------------------------
+  /* ==================================================
+     LOADING
+  ================================================== */
 
-  async function handleSignOut() {
-    try {
-      const supabase = createClient();
-
-      const { error } = await supabase.auth.signOut();
-
-      if (error) {
-        console.error("Sign out error:", error);
-        return;
-      }
-
-      window.location.href = "/login";
-    } catch (error) {
-      console.error("Sign out error:", error);
-    }
+  if (loading) {
+    return (
+      <DashboardShell>
+        <div className="flex min-h-[60vh] items-center justify-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-200 border-t-indigo-600" />
+        </div>
+      </DashboardShell>
+    );
   }
+
+  /* ==================================================
+     PAGE
+  ================================================== */
 
   return (
     <DashboardShell>
-      {/* DESKTOP TOP BAR */}
+      <div className="mx-auto max-w-5xl space-y-6 p-4 sm:p-6 lg:p-8">
 
-      <div className="hidden h-20 items-center justify-between border-b border-slate-200 bg-white px-8 dark:border-slate-800 dark:bg-slate-900 lg:flex">
+        {/* ==================================================
+            HEADER
+        ================================================== */}
+
         <div>
-          <p className="text-sm font-medium text-slate-400">
-            Workspace
-          </p>
-
-          <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-            Settings
-          </h2>
-        </div>
-
-        <Link
-          href="/analyzer"
-          className="flex items-center gap-2 rounded-xl bg-[#111827] px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 dark:bg-indigo-600 dark:hover:bg-indigo-500"
-        >
-          <Bot size={16} />
-          Analyze email
-        </Link>
-      </div>
-
-      {/* PAGE */}
-
-      <div className="mx-auto max-w-4xl px-5 py-8 sm:px-8 lg:py-10">
-        {/* HEADING */}
-
-        <div className="mb-8">
-          <p className="mb-2 text-sm font-medium text-indigo-600 dark:text-indigo-400">
-            Account preferences
-          </p>
-
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
+          <h1 className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-white">
             Settings
           </h1>
 
-          <p className="mt-2 max-w-xl text-sm leading-6 text-slate-500 dark:text-slate-400">
-            Customize your profile, notifications, AI behavior
-            and account security.
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+            Manage your profile, appearance and MailBrief preferences.
           </p>
         </div>
 
-        {/* PROFILE */}
+        {/* ==================================================
+            MESSAGE
+        ================================================== */}
 
-        <SettingsSection
-          icon={<User size={19} />}
-          title="Profile information"
-          description="Your basic account information"
-        >
+        {message && (
+          <div className="flex items-center gap-2 rounded-xl border border-indigo-100 bg-indigo-50 px-4 py-3 text-sm text-indigo-700 dark:border-indigo-900/40 dark:bg-indigo-950/30 dark:text-indigo-300">
+            <Check size={17} />
+            {message}
+          </div>
+        )}
+
+        {/* ==================================================
+            PROFILE
+        ================================================== */}
+
+        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+
+          <div className="mb-6 flex items-center gap-3">
+
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-950/40 dark:text-indigo-400">
+              <User size={19} />
+            </div>
+
+            <div>
+              <h2 className="font-semibold text-slate-900 dark:text-white">
+                Profile
+              </h2>
+
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Your MailBrief account information
+              </p>
+            </div>
+
+          </div>
+
           <div className="grid gap-5 sm:grid-cols-2">
-            <InputField
-              label="Full name"
-              value={fullName}
-              onChange={setFullName}
-              disabled={loadingProfile}
-            />
 
-            <InputField
-              label="Email address"
-              value={email}
-              disabled
-            />
+            <div>
+              <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-200">
+                Full name
+              </label>
+
+              <input
+                value={name}
+                onChange={(event) =>
+                  setName(event.target.value)
+                }
+                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+                placeholder="Your name"
+              />
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-200">
+                Email
+              </label>
+
+              <input
+                value={email}
+                disabled
+                className="w-full cursor-not-allowed rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-950"
+              />
+            </div>
+
           </div>
 
           <button
             type="button"
             onClick={saveProfile}
-            disabled={savingProfile || loadingProfile}
-            className="mt-5 rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200"
+            disabled={saving}
+            className="mt-5 inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {savingProfile ? "Saving..." : "Save changes"}
+            <Save size={16} />
+
+            {saving
+              ? "Saving..."
+              : "Save profile"}
           </button>
 
-          {profileMessage && (
-            <p className="mt-3 text-sm font-medium text-emerald-600 dark:text-emerald-400">
-              {profileMessage}
-            </p>
-          )}
+        </section>
 
-          {profileError && (
-            <p className="mt-3 text-sm font-medium text-red-600 dark:text-red-400">
-              {profileError}
-            </p>
-          )}
-        </SettingsSection>
+        {/* ==================================================
+            APPEARANCE
+        ================================================== */}
 
-        {/* NOTIFICATIONS */}
+        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
 
-        <SettingsSection
-          icon={<Bell size={19} />}
-          title="Notifications"
-          description="Choose how MailBrief keeps you updated"
-        >
-          <ToggleRow
-            title="Email notifications"
-            description="Receive important account and analysis notifications."
-            enabled={emailNotifications}
-            disabled={loadingPreferences}
-            onChange={() => {
-              const newValue = !emailNotifications;
+          <div className="mb-6 flex items-center gap-3">
 
-              setEmailNotifications(newValue);
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-950/40 dark:text-indigo-400">
+              <Palette size={19} />
+            </div>
 
-              updatePreference(
-                "email_notifications",
-                newValue
-              );
-            }}
-          />
+            <div>
+              <h2 className="font-semibold text-slate-900 dark:text-white">
+                Appearance
+              </h2>
 
-          <ToggleRow
-            title="Weekly productivity insights"
-            description="Get a weekly summary of your email activity."
-            enabled={weeklyInsights}
-            disabled={loadingPreferences}
-            onChange={() => {
-              const newValue = !weeklyInsights;
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Choose how MailBrief should look.
+              </p>
+            </div>
 
-              setWeeklyInsights(newValue);
+          </div>
 
-              updatePreference(
-                "weekly_insights",
-                newValue
-              );
-            }}
-          />
-        </SettingsSection>
+          {/* THEME OPTIONS */}
 
-        {/* AI PREFERENCES */}
+          <div>
+            <label className="mb-3 block text-sm font-medium text-slate-700 dark:text-slate-200">
+              Theme
+            </label>
 
-        <SettingsSection
-          icon={<Bot size={19} />}
-          title="AI preferences"
-          description="Control how MailBrief analyzes your emails"
-        >
-          <ToggleRow
-            title="Automatic analysis"
-            description="Automatically analyze emails when they are added."
-            enabled={autoAnalyze}
-            disabled={loadingPreferences}
-            onChange={() => {
-              const newValue = !autoAnalyze;
+            <div className="grid gap-3 sm:grid-cols-3">
 
-              setAutoAnalyze(newValue);
+              <ThemeCard
+                title="Light"
+                description="Always use the light theme."
+                active={theme === "light"}
+                onClick={() =>
+                  handleThemeChange("light")
+                }
+                preview="light"
+              />
 
-              updatePreference(
-                "auto_analyze",
-                newValue
-              );
-            }}
-          />
+              <ThemeCard
+                title="Dark"
+                description="Always use the dark theme."
+                active={theme === "dark"}
+                onClick={() =>
+                  handleThemeChange("dark")
+                }
+                preview="dark"
+              />
 
-          <div className="mt-6 rounded-2xl border border-indigo-100 bg-indigo-50/60 p-5 dark:border-indigo-500/20 dark:bg-indigo-500/10">
-            <div className="flex items-start gap-4">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-indigo-600 shadow-sm dark:bg-slate-800">
-                <Bot size={19} />
-              </div>
+              <ThemeCard
+                title="System"
+                description="Follow your device preference."
+                active={theme === "system"}
+                onClick={() =>
+                  handleThemeChange("system")
+                }
+                preview="system"
+              />
 
-              <div>
-                <h4 className="text-sm font-semibold text-slate-900 dark:text-white">
-                  MailBrief Gemini AI Engine
-                </h4>
-
-                <p className="mt-1 text-sm leading-6 text-slate-600 dark:text-slate-300">
-                  Your emails are analyzed for summaries, key
-                  points, action items, important dates, priority
-                  and suggested replies.
-                </p>
-
-                <div className="mt-3 flex items-center gap-2 text-xs font-medium text-emerald-600 dark:text-emerald-400">
-                  <Check size={14} />
-                  AI analysis enabled
-                </div>
-              </div>
             </div>
           </div>
-        </SettingsSection>
 
-        {/* SECURITY */}
+          {/* LIVE PREVIEW */}
 
-        <SettingsSection
-          icon={<Shield size={19} />}
-          title="Security"
-          description="Manage your account protection"
-        >
-          <div className="divide-y divide-slate-100 dark:divide-slate-800">
-            {/* PASSWORD */}
+          <div className="mt-8">
 
-            <div className="py-5 first:pt-0">
-              <div className="flex items-center justify-between gap-4">
-                <div className="flex items-center gap-4">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-                    <Lock size={18} />
+            <div className="mb-3 flex items-center gap-2 text-sm font-medium text-slate-800 dark:text-slate-200">
+              <Eye size={16} />
+              Live preview
+            </div>
+
+            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-950">
+
+              <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
+
+                {/* MINI HEADER */}
+
+                <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3 dark:border-slate-800">
+
+                  <div className="flex items-center gap-2">
+
+                    <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-900 text-xs font-bold text-white dark:bg-indigo-600">
+                      M
+                    </div>
+
+                    <span className="text-xs font-semibold text-slate-800 dark:text-white">
+                      MailBrief
+                    </span>
+
                   </div>
 
-                  <div>
-                    <h4 className="text-sm font-semibold text-slate-900 dark:text-white">
-                      Password
-                    </h4>
+                  <div className="h-2 w-2 rounded-full bg-emerald-500" />
+
+                </div>
+
+                {/* MINI CONTENT */}
+
+                <div className="grid gap-3 p-4 sm:grid-cols-3">
+
+                  <PreviewCard
+                    title="Emails analyzed"
+                    value="128"
+                  />
+
+                  <PreviewCard
+                    title="Action items"
+                    value="24"
+                  />
+
+                  <PreviewCard
+                    title="Important"
+                    value="8"
+                  />
+
+                </div>
+
+                <div className="px-4 pb-4">
+
+                  <div className="rounded-lg bg-indigo-50 p-3 dark:bg-indigo-950/30">
+
+                    <p className="text-xs font-medium text-indigo-700 dark:text-indigo-300">
+                      AI takeaway
+                    </p>
 
                     <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                      Change your account password
+                      Your inbox is organized and ready.
                     </p>
+
                   </div>
+
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowPasswordForm(!showPasswordForm);
-                    setPasswordMessage("");
-                    setPasswordError("");
-                  }}
-                  className="inline-flex items-center gap-1 text-sm font-semibold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300"
-                >
-                  {showPasswordForm ? "Cancel" : "Change"}
-
-                  {!showPasswordForm && (
-                    <ChevronRight size={15} />
-                  )}
-                </button>
               </div>
 
-              {showPasswordForm && (
-                <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-5 dark:border-slate-700 dark:bg-slate-800/60">
-                  <h4 className="text-sm font-semibold text-slate-900 dark:text-white">
-                    Change your password
-                  </h4>
-
-                  <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">
-                    Choose a strong password with at least 8
-                    characters.
-                  </p>
-
-                  {/* NEW PASSWORD */}
-
-                  <div className="mt-5">
-                    <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                      New password
-                    </label>
-
-                    <div className="relative">
-                      <input
-                        type={
-                          showNewPassword
-                            ? "text"
-                            : "password"
-                        }
-                        value={newPassword}
-                        onChange={(event) =>
-                          setNewPassword(event.target.value)
-                        }
-                        placeholder="Enter new password"
-                        className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 pr-12 text-sm text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:placeholder:text-slate-500"
-                      />
-
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setShowNewPassword(
-                            !showNewPassword
-                          )
-                        }
-                        className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-white"
-                      >
-                        {showNewPassword ? (
-                          <EyeOff size={18} />
-                        ) : (
-                          <Eye size={18} />
-                        )}
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* CONFIRM PASSWORD */}
-
-                  <div className="mt-4">
-                    <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                      Confirm new password
-                    </label>
-
-                    <div className="relative">
-                      <input
-                        type={
-                          showConfirmPassword
-                            ? "text"
-                            : "password"
-                        }
-                        value={confirmPassword}
-                        onChange={(event) =>
-                          setConfirmPassword(
-                            event.target.value
-                          )
-                        }
-                        placeholder="Confirm new password"
-                        className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 pr-12 text-sm text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:placeholder:text-slate-500"
-                      />
-
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setShowConfirmPassword(
-                            !showConfirmPassword
-                          )
-                        }
-                        className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-white"
-                      >
-                        {showConfirmPassword ? (
-                          <EyeOff size={18} />
-                        ) : (
-                          <Eye size={18} />
-                        )}
-                      </button>
-                    </div>
-                  </div>
-
-                  {passwordError && (
-                    <div className="mt-4 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-medium text-red-600 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400">
-                      {passwordError}
-                    </div>
-                  )}
-
-                  {passwordMessage && (
-                    <div className="mt-4 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-600 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-400">
-                      ✓ {passwordMessage}
-                    </div>
-                  )}
-
-                  <button
-                    type="button"
-                    onClick={handleChangePassword}
-                    disabled={changingPassword}
-                    className="mt-5 rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200"
-                  >
-                    {changingPassword
-                      ? "Updating..."
-                      : "Update password"}
-                  </button>
-                </div>
-              )}
             </div>
 
-            {/* EMAIL VERIFICATION */}
-
-            <div className="flex items-center justify-between gap-4 py-5 last:pb-0">
-              <div className="flex items-center gap-4">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-                  <Mail size={18} />
-                </div>
-
-                <div>
-                  <h4 className="text-sm font-semibold text-slate-900 dark:text-white">
-                    Email verification
-                  </h4>
-
-                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                    Your email address is verified
-                  </p>
-                </div>
-              </div>
-
-              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400">
-                <Check size={13} />
-                Verified
-              </span>
-            </div>
           </div>
-        </SettingsSection>
 
-        {/* APPEARANCE */}
+          {/* SAVE */}
 
-        <SettingsSection
-          icon={<Moon size={19} />}
-          title="Appearance"
-          description="Customize the way MailBrief looks"
-        >
-          <ToggleRow
-            title="Dark mode"
-            description="Use a darker interface throughout the application."
-            enabled={darkMode}
-            disabled={loadingPreferences}
-            onChange={handleDarkModeChange}
+          <button
+            type="button"
+            onClick={savePreferences}
+            disabled={saving}
+            className="mt-6 inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <Save size={16} />
+
+            {saving
+              ? "Saving..."
+              : "Save appearance"}
+          </button>
+
+        </section>
+
+        {/* ==================================================
+            NOTIFICATIONS
+        ================================================== */}
+
+        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+
+          <div className="mb-6 flex items-center gap-3">
+
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-950/40 dark:text-indigo-400">
+              <Bell size={19} />
+            </div>
+
+            <div>
+              <h2 className="font-semibold text-slate-900 dark:text-white">
+                Notifications
+              </h2>
+
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Control MailBrief notifications.
+              </p>
+            </div>
+
+          </div>
+
+          <PreferenceToggle
+            title="Email notifications"
+            description="Receive notifications about important MailBrief activity."
+            enabled={emailNotifications}
+            onChange={setEmailNotifications}
           />
 
-          <p className="mt-4 rounded-xl bg-slate-50 px-4 py-3 text-xs text-slate-500 dark:bg-slate-800 dark:text-slate-400">
-            {darkMode
-              ? "Dark mode is currently active."
-              : "Light mode is currently active."}
-          </p>
-        </SettingsSection>
+          <div className="my-4 border-t border-slate-100 dark:border-slate-800" />
 
-        {/* PREFERENCE STATUS */}
+          <PreferenceToggle
+            title="AI suggestions"
+            description="Show suggested replies and AI-generated recommendations."
+            enabled={aiSuggestions}
+            onChange={setAiSuggestions}
+          />
 
-        {preferenceMessage && (
-          <div className="mb-6 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-400">
-            ✓ {preferenceMessage}
-          </div>
-        )}
+          <button
+            type="button"
+            onClick={savePreferences}
+            disabled={saving}
+            className="mt-6 inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-indigo-700 disabled:opacity-50"
+          >
+            <Save size={16} />
 
-        {preferenceError && (
-          <div className="mb-6 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-medium text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400">
-            {preferenceError}
-          </div>
-        )}
+            {saving
+              ? "Saving..."
+              : "Save preferences"}
+          </button>
 
-        {/* SIGN OUT */}
+        </section>
 
-        <section className="mt-6 rounded-2xl border border-red-100 bg-white p-6 shadow-sm dark:border-red-500/20 dark:bg-slate-900">
-          <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-center">
+        {/* ==================================================
+            SECURITY
+        ================================================== */}
+
+        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+
+          <div className="mb-6 flex items-center gap-3">
+
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-950/40 dark:text-indigo-400">
+              <KeyRound size={19} />
+            </div>
+
             <div>
-              <h3 className="font-semibold text-slate-900 dark:text-white">
-                Sign out
-              </h3>
+              <h2 className="font-semibold text-slate-900 dark:text-white">
+                Security
+              </h2>
 
-              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                Sign out of your MailBrief account on this
-                device.
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Manage your account password.
               </p>
+            </div>
+
+          </div>
+
+          <div className="max-w-md">
+
+            <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-200">
+              New password
+            </label>
+
+            <input
+              type="password"
+              value={newPassword}
+              onChange={(event) =>
+                setNewPassword(event.target.value)
+              }
+              placeholder="Minimum 6 characters"
+              className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+            />
+
+            <button
+              type="button"
+              onClick={changePassword}
+              disabled={changingPassword}
+              className="mt-4 inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-indigo-700 disabled:opacity-50"
+            >
+              <Shield size={16} />
+
+              {changingPassword
+                ? "Updating..."
+                : "Change password"}
+            </button>
+
+          </div>
+
+        </section>
+
+        {/* ==================================================
+            AI ENGINE
+        ================================================== */}
+
+        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+
+          <div className="flex items-start gap-4">
+
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-950/40 dark:text-indigo-400">
+              <Bot size={19} />
+            </div>
+
+            <div>
+
+              <h2 className="font-semibold text-slate-900 dark:text-white">
+                AI engine
+              </h2>
+
+              <p className="mt-1 text-sm leading-6 text-slate-500 dark:text-slate-400">
+                MailBrief uses the Gemini AI engine to analyze
+                email content and generate summaries, action
+                items, dates and suggested replies.
+              </p>
+
+              <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                AI engine connected
+              </div>
+
+            </div>
+
+          </div>
+
+        </section>
+
+        {/* ==================================================
+            SIGN OUT
+        ================================================== */}
+
+        <section className="rounded-2xl border border-red-100 bg-red-50/50 p-6 dark:border-red-950 dark:bg-red-950/20">
+
+          <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-center">
+
+            <div>
+
+              <h2 className="font-semibold text-red-700 dark:text-red-400">
+                Sign out
+              </h2>
+
+              <p className="mt-1 text-sm text-red-600/70 dark:text-red-400/70">
+                Sign out of your MailBrief account on this device.
+              </p>
+
             </div>
 
             <button
               type="button"
-              onClick={handleSignOut}
-              className="inline-flex items-center justify-center gap-2 rounded-xl border border-red-200 px-5 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-50 dark:border-red-500/30 dark:text-red-400 dark:hover:bg-red-500/10"
+              onClick={signOut}
+              className="inline-flex items-center justify-center gap-2 rounded-xl border border-red-200 bg-white px-4 py-2.5 text-sm font-medium text-red-600 transition hover:bg-red-50 dark:border-red-900 dark:bg-red-950/30 dark:hover:bg-red-950/50"
             >
-              <LogOut size={17} />
+              <LogOut size={16} />
               Sign out
             </button>
+
           </div>
+
         </section>
 
-        <div className="py-10 text-center text-xs text-slate-400">
-          MailBrief AI · Your email, understood.
-        </div>
       </div>
     </DashboardShell>
   );
 }
 
 /* ==================================================
-   SETTINGS SECTION
+   THEME CARD
 ================================================== */
 
-function SettingsSection({
-  icon,
+function ThemeCard({
   title,
   description,
-  children,
+  active,
+  onClick,
+  preview,
 }: {
-  icon: ReactNode;
   title: string;
   description: string;
-  children: ReactNode;
+  active: boolean;
+  onClick: () => void;
+  preview: "light" | "dark" | "system";
 }) {
   return (
-    <section className="mb-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-      <div className="border-b border-slate-100 px-6 py-5 dark:border-slate-800">
-        <div className="flex items-start gap-4">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
-            {icon}
+    <button
+      type="button"
+      onClick={onClick}
+      className={`rounded-2xl border p-4 text-left transition ${
+        active
+          ? "border-indigo-500 bg-indigo-50/70 shadow-sm dark:border-indigo-500 dark:bg-indigo-950/30"
+          : "border-slate-200 hover:border-slate-300 hover:shadow-sm dark:border-slate-700 dark:hover:border-slate-600"
+      }`}
+    >
+      {/* MINI THEME PREVIEW */}
+
+      <div
+        className={`mb-4 h-20 overflow-hidden rounded-xl border ${
+          preview === "dark"
+            ? "border-slate-700 bg-slate-900"
+            : "border-slate-200 bg-white"
+        }`}
+      >
+        <div
+          className={`flex h-5 items-center gap-1 px-2 ${
+            preview === "dark"
+              ? "bg-slate-800"
+              : "bg-slate-100"
+          }`}
+        >
+          <span className="h-1.5 w-1.5 rounded-full bg-slate-300" />
+          <span className="h-1.5 w-1.5 rounded-full bg-slate-300" />
+          <span className="h-1.5 w-1.5 rounded-full bg-slate-300" />
+        </div>
+
+        <div className="flex gap-2 p-2">
+
+          <div
+            className={`h-11 w-7 rounded ${
+              preview === "dark"
+                ? "bg-slate-800"
+                : "bg-slate-100"
+            }`}
+          />
+
+          <div className="flex-1 space-y-1.5">
+            <div
+              className={`h-2 w-3/4 rounded ${
+                preview === "dark"
+                  ? "bg-slate-700"
+                  : "bg-slate-200"
+              }`}
+            />
+
+            <div
+              className={`h-2 w-1/2 rounded ${
+                preview === "dark"
+                  ? "bg-slate-700"
+                  : "bg-slate-200"
+              }`}
+            />
+
+            <div className="h-2 w-1/3 rounded bg-indigo-500" />
           </div>
 
-          <div>
-            <h3 className="font-semibold text-slate-900 dark:text-white">
-              {title}
-            </h3>
-
-            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-              {description}
-            </p>
-          </div>
         </div>
       </div>
 
-      <div className="p-6">{children}</div>
-    </section>
+      {/* TEXT */}
+
+      <div className="flex items-center justify-between gap-2">
+
+        <div>
+          <div className="text-sm font-semibold text-slate-900 dark:text-white">
+            {title}
+          </div>
+
+          <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">
+            {description}
+          </p>
+        </div>
+
+        {active && (
+          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-white">
+            <Check size={14} />
+          </div>
+        )}
+
+      </div>
+    </button>
   );
 }
 
 /* ==================================================
-   INPUT FIELD
+   PREVIEW CARD
 ================================================== */
 
-function InputField({
-  label,
+function PreviewCard({
+  title,
   value,
-  onChange,
-  disabled = false,
 }: {
-  label: string;
+  title: string;
   value: string;
-  onChange?: (value: string) => void;
-  disabled?: boolean;
 }) {
   return (
-    <label className="block">
-      <span className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">
-        {label}
-      </span>
+    <div className="rounded-xl border border-slate-100 bg-white p-3 dark:border-slate-800 dark:bg-slate-950">
 
-      <input
-        value={value}
-        onChange={(event) =>
-          onChange?.(event.target.value)
-        }
-        disabled={disabled}
-        className={`w-full rounded-xl border px-4 py-3 text-sm outline-none transition ${
-          disabled
-            ? "cursor-not-allowed border-slate-200 bg-slate-50 text-slate-400 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-500"
-            : "border-slate-200 bg-white text-slate-900 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
-        }`}
-      />
-    </label>
+      <p className="text-[11px] text-slate-500 dark:text-slate-400">
+        {title}
+      </p>
+
+      <p className="mt-1 text-lg font-semibold text-slate-900 dark:text-white">
+        {value}
+      </p>
+
+    </div>
   );
 }
 
 /* ==================================================
-   TOGGLE
+   PREFERENCE TOGGLE
 ================================================== */
 
-function ToggleRow({
+function PreferenceToggle({
   title,
   description,
   enabled,
-  disabled = false,
   onChange,
 }: {
   title: string;
   description: string;
   enabled: boolean;
-  disabled?: boolean;
-  onChange: () => void;
+  onChange: (value: boolean) => void;
 }) {
   return (
-    <div className="flex items-center justify-between gap-6 py-2">
-      <div>
-        <h4 className="text-sm font-semibold text-slate-900 dark:text-white">
-          {title}
-        </h4>
+    <div className="flex items-center justify-between gap-5">
 
-        <p className="mt-1 max-w-xl text-sm leading-6 text-slate-500 dark:text-slate-400">
+      <div>
+        <h3 className="text-sm font-medium text-slate-900 dark:text-white">
+          {title}
+        </h3>
+
+        <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">
           {description}
         </p>
       </div>
 
       <button
         type="button"
-        onClick={onChange}
-        disabled={disabled}
-        aria-label={`Toggle ${title}`}
-        aria-pressed={enabled}
+        role="switch"
+        aria-checked={enabled}
+        onClick={() => onChange(!enabled)}
         className={`relative h-6 w-11 shrink-0 rounded-full transition ${
           enabled
             ? "bg-indigo-600"
             : "bg-slate-300 dark:bg-slate-700"
-        } ${
-          disabled
-            ? "cursor-not-allowed opacity-50"
-            : "cursor-pointer"
         }`}
       >
         <span
@@ -982,6 +946,7 @@ function ToggleRow({
           }`}
         />
       </button>
+
     </div>
   );
 }

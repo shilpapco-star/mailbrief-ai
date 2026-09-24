@@ -1,17 +1,18 @@
 "use client";
 
-import DashboardShell from "../components/dashboard/DashboardShell";
+import { FormEvent, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
+  AlertCircle,
   ArrowRight,
   CheckCircle2,
   FileText,
-  History,
-  Send,
+  Loader2,
+  Mail,
   Sparkles,
 } from "lucide-react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import DashboardShell from "../components/dashboard/DashboardShell";
+import { createClient } from "../../lib/supabase/client";
 
 type EmailAnalysis = {
   summary: string;
@@ -29,51 +30,78 @@ type EmailAnalysis = {
 
 export default function AnalyzerPage() {
   const router = useRouter();
+  const supabase = createClient();
 
-  const [sender, setSender] = useState("");
-  const [subject, setSubject] = useState("");
-  const [email, setEmail] = useState("");
-
+  const [emailText, setEmailText] = useState("");
   const [analysis, setAnalysis] = useState<EmailAnalysis | null>(null);
   const [analyzedEmailId, setAnalyzedEmailId] = useState<string | null>(null);
 
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState("");
 
-  async function handleAnalyze() {
+  useEffect(() => {
+    async function checkUser() {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        router.replace("/login");
+        return;
+      }
+
+      setLoading(false);
+    }
+
+    checkUser();
+  }, [router, supabase]);
+
+  function handleClear() {
+    setEmailText("");
+    setAnalysis(null);
+    setAnalyzedEmailId(null);
+    setError("");
+  }
+
+  async function handleAnalyze(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
     setError("");
     setAnalysis(null);
     setAnalyzedEmailId(null);
 
-    if (!email.trim()) {
+    const trimmedEmail = emailText.trim();
+
+    if (!trimmedEmail) {
       setError("Please paste an email before analyzing.");
       return;
     }
 
-    if (email.trim().length < 10) {
-      setError("Please enter a longer email.");
+    if (trimmedEmail.length < 20) {
+      setError("Please paste a complete email with enough content to analyze.");
       return;
     }
 
-    try {
-      setLoading(true);
+    setAnalyzing(true);
 
+    try {
       const response = await fetch("/api/analyze-email", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          sender,
-          subject,
-          emailText: email,
+          emailText: trimmedEmail,
         }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || "Failed to analyze the email.");
+        throw new Error(
+          data?.error || "Something went wrong while analyzing the email."
+        );
       }
 
       setAnalysis(data.analysis);
@@ -82,451 +110,373 @@ export default function AnalyzerPage() {
       setError(
         err instanceof Error
           ? err.message
-          : "Something went wrong while analyzing the email."
+          : "Unable to analyze the email. Please try again."
       );
     } finally {
-      setLoading(false);
+      setAnalyzing(false);
     }
+  }
+
+  if (loading) {
+    return (
+      <DashboardShell>
+        <div className="flex min-h-[70vh] items-center justify-center">
+          <Loader2 className="h-7 w-7 animate-spin text-indigo-600" />
+        </div>
+      </DashboardShell>
+    );
   }
 
   return (
     <DashboardShell>
-      <div className="min-h-screen bg-[#f8fafc] text-slate-900 transition-colors duration-300 dark:bg-slate-950 dark:text-slate-100">
-        {/* Desktop Top Bar */}
-        <div className="hidden h-20 items-center justify-between border-b border-slate-200 bg-white px-8 transition-colors duration-300 dark:border-slate-800 dark:bg-slate-900 lg:flex">
-          <div>
-            <p className="text-sm font-medium text-slate-400">Workspace</p>
-
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-              Email Analyzer
-            </h2>
+      <div className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
+        {/* Header */}
+        <div className="mb-8">
+          <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-indigo-100 bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-700 dark:border-indigo-500/20 dark:bg-indigo-500/10 dark:text-indigo-300">
+            <Sparkles className="h-3.5 w-3.5" />
+            MailBrief Gemini AI Engine
           </div>
 
-          <Link
-            href="/history"
-            className="flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
-          >
-            <History size={16} />
-            View history
-          </Link>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white sm:text-4xl">
+            Understand your email in seconds.
+          </h1>
+
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500 dark:text-slate-400 sm:text-base">
+            Paste your entire email below. MailBrief automatically extracts
+            the important information and gives you a clear AI-powered
+            breakdown.
+          </p>
         </div>
 
-        {/* Main Content */}
-        <div className="mx-auto max-w-6xl px-5 py-8 sm:px-8 lg:px-10 lg:py-10">
-          {/* Heading */}
-          <div className="mb-8">
-            <div className="flex items-center gap-2 text-sm font-semibold text-indigo-600 dark:text-indigo-400">
-              <Sparkles size={16} />
-              AI Email Intelligence
-            </div>
-
-            <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-950 dark:text-white sm:text-4xl">
-              Understand every email in seconds.
-            </h1>
-
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-500 dark:text-slate-400 sm:text-base">
-              Paste an email below and MailBrief AI will summarize it, extract
-              important points, identify action items, and highlight important
-              dates.
-            </p>
-          </div>
-
-          {/* Analyzer Grid */}
-          <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
-            {/* Email Input */}
-            <div className="rounded-3xl border border-slate-200 bg-white shadow-sm transition-colors duration-300 dark:border-slate-800 dark:bg-slate-900">
-              <div className="border-b border-slate-100 px-6 py-5 dark:border-slate-800">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-bold text-slate-900 dark:text-white">
-                      Email to analyze
-                    </h3>
-
-                    <p className="mt-1 text-xs text-slate-400">
-                      Paste the complete email content below.
-                    </p>
+        <div className="grid gap-6 lg:grid-cols-[1fr_0.9fr]">
+          {/* Input */}
+          <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-7">
+            <div className="mb-5 flex items-start justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
+                    <Mail className="h-5 w-5" />
                   </div>
 
-                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 dark:bg-indigo-500/15 dark:text-indigo-400">
-                    <FileText size={17} />
+                  <div>
+                    <h2 className="font-semibold text-slate-900 dark:text-white">
+                      Paste your email
+                    </h2>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      From, subject and body can all be pasted together.
+                    </p>
                   </div>
                 </div>
               </div>
 
-              <div className="p-6">
-                {/* Sender */}
-                <div>
-                  <label
-                    htmlFor="sender"
-                    className="mb-2 block text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400"
-                  >
-                    Sender
-                  </label>
-
-                  <input
-                    id="sender"
-                    type="email"
-                    value={sender}
-                    onChange={(e) => setSender(e.target.value)}
-                    placeholder="sender@company.com"
-                    className="h-11 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:placeholder:text-slate-500"
-                  />
-                </div>
-
-                {/* Subject */}
-                <div className="mt-5">
-                  <label
-                    htmlFor="subject"
-                    className="mb-2 block text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400"
-                  >
-                    Subject
-                  </label>
-
-                  <input
-                    id="subject"
-                    type="text"
-                    value={subject}
-                    onChange={(e) => setSubject(e.target.value)}
-                    placeholder="Email subject"
-                    className="h-11 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:placeholder:text-slate-500"
-                  />
-                </div>
-
-                {/* Body */}
-                <div className="mt-5">
-                  <div className="mb-2 flex items-center justify-between">
-                    <label
-                      htmlFor="email"
-                      className="text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400"
-                    >
-                      Email body
-                    </label>
-
-                    <span className="text-xs text-slate-400">
-                      {email.length} characters
-                    </span>
-                  </div>
-
-                  <textarea
-                    id="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="Paste your email here..."
-                    rows={12}
-                    className="w-full resize-none rounded-xl border border-slate-200 bg-white p-4 text-sm leading-6 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:placeholder:text-slate-500"
-                  />
-                </div>
-
-                {/* Error */}
-                {error && (
-                  <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-400">
-                    {error}
-                  </div>
-                )}
-
-                {/* Analyze Button */}
+              {emailText && (
                 <button
                   type="button"
-                  onClick={handleAnalyze}
-                  disabled={loading}
-                  className="mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#111827] text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-indigo-600 dark:hover:bg-indigo-500"
+                  onClick={handleClear}
+                  className="text-xs font-medium text-slate-500 transition hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
                 >
-                  {loading ? (
-                    <>
-                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                      Analyzing with Gemini...
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles size={17} />
-                      Analyze with Gemini AI
-                      <Send size={16} />
-                    </>
-                  )}
+                  Clear
                 </button>
-              </div>
-            </div>
-
-            {/* Right Panel */}
-            <div className="space-y-6">
-              {/* Ready Card */}
-              <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition-colors duration-300 dark:border-slate-800 dark:bg-slate-900">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400">
-                    <CheckCircle2 size={20} />
-                  </div>
-
-                  <div>
-                    <h3 className="font-bold text-slate-900 dark:text-white">
-                      Analysis ready
-                    </h3>
-
-                    <p className="text-xs text-slate-400">
-                      AI processing happens securely.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="mt-6 space-y-3">
-                  <StatusItem text="Summary generation" />
-                  <StatusItem text="Key point extraction" />
-                  <StatusItem text="Action item detection" />
-                  <StatusItem text="Important date detection" />
-                  <StatusItem text="Priority classification" />
-                </div>
-              </div>
-
-              {/* What You'll Get */}
-              <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition-colors duration-300 dark:border-slate-800 dark:bg-slate-900">
-                <p className="text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
-                  What you&apos;ll get
-                </p>
-
-                <h3 className="mt-2 text-xl font-bold text-slate-900 dark:text-white">
-                  One clear brief.
-                </h3>
-
-                <p className="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">
-                  Turn long emails into information you can understand and act
-                  on quickly.
-                </p>
-
-                <div className="mt-5 grid grid-cols-2 gap-3">
-                  <InfoCard title="Summary" />
-                  <InfoCard title="Key points" />
-                  <InfoCard title="Action items" />
-                  <InfoCard title="Important dates" />
-                  <InfoCard title="Priority" />
-                  <InfoCard title="Suggested reply" />
-                </div>
-              </div>
-
-              {/* Gemini */}
-              <div className="rounded-3xl bg-[#111827] p-6 text-white dark:bg-slate-800">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10">
-                    <Sparkles size={19} />
-                  </div>
-
-                  <div>
-                    <p className="font-semibold">
-                      MailBrief Gemini AI Engine
-                    </p>
-
-                    <p className="text-xs text-slate-400">
-                      Intelligent email analysis
-                    </p>
-                  </div>
-                </div>
-
-                <p className="mt-5 text-sm leading-6 text-slate-300">
-                  Your email is analyzed to identify the information that
-                  matters most.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Analysis Results */}
-          {analysis && (
-            <div className="mt-8 space-y-6">
-              <div className="flex items-center gap-2">
-                <Sparkles
-                  size={20}
-                  className="text-indigo-600 dark:text-indigo-400"
-                />
-
-                <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
-                  AI Analysis
-                </h2>
-              </div>
-
-              {/* Summary + Classification */}
-              <div className="grid gap-6 lg:grid-cols-[1fr_0.4fr]">
-                <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-                  <p className="text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
-                    Summary
-                  </p>
-
-                  <p className="mt-3 text-sm leading-7 text-slate-600 dark:text-slate-300">
-                    {analysis.summary}
-                  </p>
-                </div>
-
-                <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-                  <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                    Classification
-                  </p>
-
-                  <div className="mt-4 space-y-3">
-                    <ResultRow
-                      label="Priority"
-                      value={analysis.priority}
-                    />
-
-                    <ResultRow
-                      label="Sentiment"
-                      value={analysis.sentiment}
-                    />
-
-                    <ResultRow
-                      label="Category"
-                      value={analysis.category}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Key Points */}
-              <ResultSection
-                title="Key Points"
-                items={analysis.keyPoints}
-              />
-
-              {/* Action Items */}
-              <ResultSection
-                title="Action Items"
-                items={analysis.actionItems}
-              />
-
-              {/* Important Dates */}
-              <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-                <h3 className="font-bold text-slate-900 dark:text-white">
-                  Important Dates
-                </h3>
-
-                {analysis.importantDates.length === 0 ? (
-                  <p className="mt-4 text-sm text-slate-400">
-                    No important dates were found.
-                  </p>
-                ) : (
-                  <div className="mt-4 space-y-3">
-                    {analysis.importantDates.map((item, index) => (
-                      <div
-                        key={`${item.date}-${index}`}
-                        className="rounded-xl bg-slate-50 p-4 dark:bg-slate-800"
-                      >
-                        <p className="font-semibold text-slate-800 dark:text-slate-100">
-                          {item.date}
-                        </p>
-
-                        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                          {item.description}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Suggested Reply */}
-              <div className="rounded-3xl border border-indigo-100 bg-indigo-50 p-6 dark:border-indigo-900/50 dark:bg-indigo-950/30">
-                <p className="text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
-                  Suggested Reply
-                </p>
-
-                <p className="mt-3 whitespace-pre-line text-sm leading-7 text-slate-700 dark:text-slate-300">
-                  {analysis.suggestedReply}
-                </p>
-              </div>
-
-              {/* View Full Analysis */}
-              {analyzedEmailId && (
-                <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      router.push(`/email/${analyzedEmailId}`)
-                    }
-                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#111827] px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 dark:bg-indigo-600 dark:hover:bg-indigo-500"
-                  >
-                    View Full Analysis
-                    <ArrowRight size={16} />
-                  </button>
-                </div>
               )}
             </div>
-          )}
+
+            <form onSubmit={handleAnalyze}>
+              <div className="relative">
+                <textarea
+                  value={emailText}
+                  onChange={(event) => setEmailText(event.target.value)}
+                  placeholder={`Paste the complete email here...
+
+Example:
+
+From: John Smith <john@example.com>
+Subject: Meeting scheduled for tomorrow
+
+Hi Shilpa,
+
+The meeting has been moved to 10 AM tomorrow. Please prepare the presentation before the meeting.
+
+Thanks,
+John`}
+                  className="min-h-[390px] w-full resize-y rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm leading-6 text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-indigo-400 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:placeholder:text-slate-600 dark:focus:border-indigo-500 dark:focus:bg-slate-950"
+                  disabled={analyzing}
+                />
+
+                <div className="pointer-events-none absolute bottom-3 right-3 rounded-lg bg-white/90 px-2 py-1 text-[10px] text-slate-400 shadow-sm dark:bg-slate-900/90">
+                  {emailText.length.toLocaleString()} characters
+                </div>
+              </div>
+
+              {error && (
+                <div className="mt-4 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-300">
+                  <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                  <span>{error}</span>
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={analyzing || !emailText.trim()}
+                className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {analyzing ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Analyzing email...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-4 w-4" />
+                    Analyze Email
+                  </>
+                )}
+              </button>
+            </form>
+
+            <div className="mt-5 grid gap-2 sm:grid-cols-3">
+              <MiniFeature label="AI Summary" />
+              <MiniFeature label="Action Items" />
+              <MiniFeature label="Priority & Dates" />
+            </div>
+          </section>
+
+          {/* Results */}
+          <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-7">
+            {!analysis ? (
+              <EmptyAnalysisState analyzing={analyzing} />
+            ) : (
+              <AnalysisResult
+                analysis={analysis}
+                onViewFullAnalysis={() => {
+                  if (analyzedEmailId) {
+                    router.push(`/email/${analyzedEmailId}`);
+                  }
+                }}
+              />
+            )}
+          </section>
         </div>
       </div>
     </DashboardShell>
   );
 }
 
-function StatusItem({ text }: { text: string }) {
+function MiniFeature({ label }: { label: string }) {
   return (
-    <div className="flex items-center gap-3 rounded-xl bg-slate-50 px-4 py-3 dark:bg-slate-800">
-      <CheckCircle2
-        size={17}
-        className="text-emerald-500 dark:text-emerald-400"
-      />
-
-      <span className="text-sm font-medium text-slate-600 dark:text-slate-300">
-        {text}
+    <div className="flex items-center gap-2 rounded-xl border border-slate-100 bg-slate-50 px-3 py-2.5 dark:border-slate-800 dark:bg-slate-950">
+      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+      <span className="text-xs font-medium text-slate-600 dark:text-slate-300">
+        {label}
       </span>
     </div>
   );
 }
 
-function InfoCard({ title }: { title: string }) {
+function EmptyAnalysisState({ analyzing }: { analyzing: boolean }) {
   return (
-    <div className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-3 dark:border-slate-700 dark:bg-slate-800">
-      <p className="text-xs font-semibold text-slate-600 dark:text-slate-300">
-        {title}
+    <div className="flex min-h-[520px] flex-col items-center justify-center text-center">
+      <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-50 dark:bg-indigo-500/10">
+        {analyzing ? (
+          <Loader2 className="h-7 w-7 animate-spin text-indigo-600 dark:text-indigo-400" />
+        ) : (
+          <FileText className="h-7 w-7 text-indigo-600 dark:text-indigo-400" />
+        )}
+      </div>
+
+      <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
+        {analyzing ? "Analyzing your email..." : "Your AI analysis will appear here"}
+      </h2>
+
+      <p className="mt-2 max-w-sm text-sm leading-6 text-slate-500 dark:text-slate-400">
+        {analyzing
+          ? "MailBrief is extracting the important information from your email."
+          : "Paste a complete email on the left and click Analyze Email to get started."}
       </p>
+
+      {!analyzing && (
+        <div className="mt-6 space-y-2 text-left text-xs text-slate-500 dark:text-slate-400">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+            Summary and key points
+          </div>
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+            Action items and important dates
+          </div>
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+            Priority and suggested reply
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AnalysisResult({
+  analysis,
+  onViewFullAnalysis,
+}: {
+  analysis: EmailAnalysis;
+  onViewFullAnalysis: () => void;
+}) {
+  const priorityClass = {
+    LOW: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300",
+    MEDIUM:
+      "bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300",
+    HIGH:
+      "bg-orange-50 text-orange-700 dark:bg-orange-500/10 dark:text-orange-300",
+    URGENT:
+      "bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-300",
+  }[analysis.priority];
+
+  return (
+    <div>
+      <div className="mb-6 flex items-start justify-between gap-4">
+        <div>
+          <div className="mb-2 flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
+            <Sparkles className="h-4 w-4" />
+            <span className="text-xs font-semibold uppercase tracking-wider">
+              AI Analysis
+            </span>
+          </div>
+
+          <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+            Email insights
+          </h2>
+        </div>
+
+        <span
+          className={`rounded-full px-3 py-1 text-xs font-bold ${priorityClass}`}
+        >
+          {analysis.priority}
+        </span>
+      </div>
+
+      {/* Summary */}
+      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950">
+        <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
+          Summary
+        </p>
+        <p className="text-sm leading-6 text-slate-700 dark:text-slate-300">
+          {analysis.summary}
+        </p>
+      </div>
+
+      {/* Key points */}
+      {analysis.keyPoints.length > 0 && (
+        <ResultSection title="Key points">
+          <ul className="space-y-2">
+            {analysis.keyPoints.map((point, index) => (
+              <li
+                key={index}
+                className="flex gap-2 text-sm leading-6 text-slate-600 dark:text-slate-300"
+              >
+                <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-indigo-500" />
+                {point}
+              </li>
+            ))}
+          </ul>
+        </ResultSection>
+      )}
+
+      {/* Action items */}
+      {analysis.actionItems.length > 0 && (
+        <ResultSection title="Action items">
+          <div className="space-y-2">
+            {analysis.actionItems.map((item, index) => (
+              <div
+                key={index}
+                className="flex gap-3 rounded-xl border border-slate-100 p-3 dark:border-slate-800"
+              >
+                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-indigo-500" />
+                <span className="text-sm text-slate-600 dark:text-slate-300">
+                  {item}
+                </span>
+              </div>
+            ))}
+          </div>
+        </ResultSection>
+      )}
+
+      {/* Dates */}
+      {analysis.importantDates.length > 0 && (
+        <ResultSection title="Important dates">
+          <div className="space-y-2">
+            {analysis.importantDates.map((item, index) => (
+              <div
+                key={index}
+                className="rounded-xl border border-slate-100 p-3 dark:border-slate-800"
+              >
+                <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+                  {item.date}
+                </p>
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                  {item.description}
+                </p>
+              </div>
+            ))}
+          </div>
+        </ResultSection>
+      )}
+
+      {/* Metadata */}
+      <div className="mt-6 grid grid-cols-2 gap-3">
+        <div className="rounded-xl border border-slate-100 p-3 dark:border-slate-800">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+            Category
+          </p>
+          <p className="mt-1 text-sm font-medium text-slate-700 dark:text-slate-200">
+            {analysis.category}
+          </p>
+        </div>
+
+        <div className="rounded-xl border border-slate-100 p-3 dark:border-slate-800">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+            Sentiment
+          </p>
+          <p className="mt-1 text-sm font-medium text-slate-700 dark:text-slate-200">
+            {analysis.sentiment}
+          </p>
+        </div>
+      </div>
+
+      {/* Suggested reply */}
+      {analysis.suggestedReply && (
+        <ResultSection title="Suggested reply">
+          <div className="rounded-xl border border-indigo-100 bg-indigo-50/60 p-4 dark:border-indigo-500/20 dark:bg-indigo-500/10">
+            <p className="whitespace-pre-wrap text-sm leading-6 text-slate-700 dark:text-slate-300">
+              {analysis.suggestedReply}
+            </p>
+          </div>
+        </ResultSection>
+      )}
+
+      <button
+        type="button"
+        onClick={onViewFullAnalysis}
+        className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+      >
+        View Full Analysis
+        <ArrowRight className="h-4 w-4" />
+      </button>
     </div>
   );
 }
 
 function ResultSection({
   title,
-  items,
+  children,
 }: {
   title: string;
-  items: string[];
+  children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-      <h3 className="font-bold text-slate-900 dark:text-white">{title}</h3>
-
-      {items.length === 0 ? (
-        <p className="mt-4 text-sm text-slate-400">
-          No items were found.
-        </p>
-      ) : (
-        <ul className="mt-4 space-y-3">
-          {items.map((item, index) => (
-            <li
-              key={`${item}-${index}`}
-              className="flex gap-3 rounded-xl bg-slate-50 p-4 text-sm leading-6 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
-            >
-              <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-indigo-500" />
-
-              <span>{item}</span>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
-}
-
-function ResultRow({
-  label,
-  value,
-}: {
-  label: string;
-  value: string;
-}) {
-  return (
-    <div className="flex items-center justify-between gap-3 rounded-xl bg-slate-50 px-4 py-3 dark:bg-slate-800">
-      <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-        {label}
-      </span>
-
-      <span className="text-right text-sm font-bold text-slate-700 dark:text-slate-200">
-        {value}
-      </span>
+    <div className="mt-6">
+      <h3 className="mb-3 text-sm font-semibold text-slate-900 dark:text-white">
+        {title}
+      </h3>
+      {children}
     </div>
   );
 }

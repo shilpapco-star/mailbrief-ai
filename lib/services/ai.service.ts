@@ -24,6 +24,31 @@ const ai = new GoogleGenAI({
   apiKey,
 });
 
+const MODELS = [
+  "gemini-3.5-flash-lite",
+  "gemini-3.1-flash-lite",
+  "gemini-2.5-flash-lite",
+];
+
+const MAX_RETRIES_PER_MODEL = 2;
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isTemporaryGeminiError(error: unknown) {
+  const message =
+    error instanceof Error ? error.message : String(error);
+
+  return (
+    message.includes("503") ||
+    message.includes("UNAVAILABLE") ||
+    message.includes("high demand") ||
+    message.includes("overloaded") ||
+    message.includes("temporarily")
+  );
+}
+
 export async function analyzeEmail(
   emailText: string
 ): Promise<EmailAnalysis> {
@@ -55,86 +80,146 @@ Rules:
 - Keep the suggested reply professional and natural.
 `;
 
-  const response = await ai.models.generateContent({
-   model: "gemini-3.5-flash-lite",
-    contents: prompt,
-    config: {
-      responseMimeType: "application/json",
-      responseSchema: {
-        type: Type.OBJECT,
-        properties: {
-          summary: {
-            type: Type.STRING,
-            description: "A concise summary of the email.",
-          },
-          keyPoints: {
-            type: Type.ARRAY,
-            items: {
-              type: Type.STRING,
-            },
-            description: "The most important points from the email.",
-          },
-          actionItems: {
-            type: Type.ARRAY,
-            items: {
-              type: Type.STRING,
-            },
-            description: "Actions the recipient needs to take.",
-          },
-          importantDates: {
-            type: Type.ARRAY,
-            items: {
+  let lastError: unknown = null;
+
+  for (const model of MODELS) {
+    for (let attempt = 1; attempt <= MAX_RETRIES_PER_MODEL; attempt++) {
+      try {
+        const response = await ai.models.generateContent({
+          model,
+          contents: prompt,
+          config: {
+            responseMimeType: "application/json",
+            responseSchema: {
               type: Type.OBJECT,
               properties: {
-                date: {
+                summary: {
                   type: Type.STRING,
+                  description: "A concise summary of the email.",
                 },
-                description: {
+
+                keyPoints: {
+                  type: Type.ARRAY,
+                  items: {
+                    type: Type.STRING,
+                  },
+                  description:
+                    "The most important points from the email.",
+                },
+
+                actionItems: {
+                  type: Type.ARRAY,
+                  items: {
+                    type: Type.STRING,
+                  },
+                  description:
+                    "Actions the recipient needs to take.",
+                },
+
+                importantDates: {
+                  type: Type.ARRAY,
+                  items: {
+                    type: Type.OBJECT,
+                    properties: {
+                      date: {
+                        type: Type.STRING,
+                      },
+                      description: {
+                        type: Type.STRING,
+                      },
+                    },
+                    required: ["date", "description"],
+                  },
+                  description:
+                    "Important dates or deadlines from the email.",
+                },
+
+                priority: {
                   type: Type.STRING,
+                  enum: [
+                    "LOW",
+                    "MEDIUM",
+                    "HIGH",
+                    "URGENT",
+                  ],
+                },
+
+                sentiment: {
+                  type: Type.STRING,
+                  enum: [
+                    "POSITIVE",
+                    "NEUTRAL",
+                    "NEGATIVE",
+                  ],
+                },
+
+                category: {
+                  type: Type.STRING,
+                  description:
+                    "The most appropriate email category.",
+                },
+
+                suggestedReply: {
+                  type: Type.STRING,
+                  description:
+                    "A short professional reply to the email.",
                 },
               },
-              required: ["date", "description"],
+
+              required: [
+                "summary",
+                "keyPoints",
+                "actionItems",
+                "importantDates",
+                "priority",
+                "sentiment",
+                "category",
+                "suggestedReply",
+              ],
             },
-            description: "Important dates or deadlines from the email.",
           },
-          priority: {
-            type: Type.STRING,
-            enum: ["LOW", "MEDIUM", "HIGH", "URGENT"],
-          },
-          sentiment: {
-            type: Type.STRING,
-            enum: ["POSITIVE", "NEUTRAL", "NEGATIVE"],
-          },
-          category: {
-            type: Type.STRING,
-            description: "The most appropriate email category.",
-          },
-          suggestedReply: {
-            type: Type.STRING,
-            description: "A short professional reply to the email.",
-          },
-        },
-        required: [
-          "summary",
-          "keyPoints",
-          "actionItems",
-          "importantDates",
-          "priority",
-          "sentiment",
-          "category",
-          "suggestedReply",
-        ],
-      },
-    },
-  });
+        });
 
-  if (!response.text) {
-    throw new Error("Gemini returned an empty response.");
+        if (!response.text) {
+          throw new Error(
+            "Gemini returned an empty response."
+          );
+        }
+
+        try {
+          return JSON.parse(response.text) as EmailAnalysis;
+        } catch {
+          throw new Error(
+            "Gemini returned an invalid analysis format."
+          );
+        }
+      } catch (error) {
+        lastError = error;
+
+        console.error(
+          `Gemini model ${model}, attempt ${attempt} failed:`,
+          error
+        );
+
+        if (!isTemporaryGeminiError(error)) {
+          throw error;
+        }
+
+        // Wait before retrying.
+        // 1st retry: 1.5 seconds
+        // 2nd retry: 3 seconds
+        if (attempt < MAX_RETRIES_PER_MODEL) {
+          await sleep(1500 * attempt);
+        }
+      }
+    }
+
+    console.warn(
+      `Model ${model} unavailable. Trying fallback model...`
+    );
   }
 
-  try {
-    return JSON.parse(response.text) as EmailAnalysis;
-  } catch {
-    throw new Error("Gemini returned an invalid analysis format.");
-  }
+  throw new Error(
+    "Gemini is temporarily unavailable. Please try again in a moment."
+  );
 }
