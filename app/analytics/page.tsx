@@ -119,10 +119,6 @@ export default function AnalyticsPage() {
 
     setTotalEmails(total);
 
-    // -----------------------------
-    // PRIORITY BREAKDOWN
-    // -----------------------------
-
     const priorityNames = ["LOW", "MEDIUM", "HIGH", "URGENT"];
 
     const priorityData: Priority[] = priorityNames.map((priority) => ({
@@ -131,10 +127,6 @@ export default function AnalyticsPage() {
     }));
 
     setPriorities(priorityData);
-
-    // -----------------------------
-    // CATEGORY BREAKDOWN
-    // -----------------------------
 
     const categoryMap: Record<string, number> = {};
 
@@ -154,10 +146,6 @@ export default function AnalyticsPage() {
       }));
 
     setCategories(categoryData);
-
-    // -----------------------------
-    // LAST 7 DAYS ACTIVITY
-    // -----------------------------
 
     const now = new Date();
 
@@ -188,10 +176,6 @@ export default function AnalyticsPage() {
 
     setWeeklyData(lastSevenDays);
 
-    // -----------------------------
-    // READING TIME
-    // -----------------------------
-
     let totalOriginalReadingSeconds = 0;
     let totalBriefReadingSeconds = 0;
 
@@ -217,20 +201,12 @@ export default function AnalyticsPage() {
 
     setTimeSaved(formatTime(savedSeconds));
 
-    // -----------------------------
-    // AVERAGE READING TIME
-    // -----------------------------
-
     const averageSeconds =
       total > 0
         ? Math.round(totalOriginalReadingSeconds / total)
         : 0;
 
     setAverageReadingTime(`${averageSeconds} sec`);
-
-    // -----------------------------
-    // AI INSIGHTS
-    // -----------------------------
 
     loadInsightCount(emailList);
   }
@@ -286,7 +262,6 @@ export default function AnalyticsPage() {
     }
 
     const hours = Math.floor(seconds / 3600);
-
     const minutes = Math.floor((seconds % 3600) / 60);
 
     if (hours > 0) {
@@ -303,16 +278,25 @@ export default function AnalyticsPage() {
 
   return (
     <DashboardShell>
-      <div className="min-h-screen bg-[#f8fafc] text-slate-900 transition-colors duration-300 dark:bg-slate-950 dark:text-slate-100">
-        {/* Desktop Top Bar */}
+      <div className="relative min-h-screen overflow-hidden bg-[#f6f7fb] text-slate-900 transition-colors duration-300 dark:bg-[#050816] dark:text-slate-100">
 
-        <div className="hidden h-20 items-center justify-between border-b border-slate-200 bg-white px-8 dark:border-slate-800 dark:bg-slate-900 lg:flex">
+        {/* Ambient Aurora Background */}
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="absolute -left-32 top-20 h-80 w-80 rounded-full bg-violet-300/20 blur-3xl dark:bg-violet-600/10" />
+
+          <div className="absolute right-0 top-0 h-96 w-96 rounded-full bg-cyan-300/20 blur-3xl dark:bg-cyan-500/10" />
+
+          <div className="absolute bottom-0 left-1/3 h-80 w-80 rounded-full bg-fuchsia-300/10 blur-3xl dark:bg-fuchsia-600/10" />
+        </div>
+
+        {/* Desktop Top Bar */}
+        <div className="relative hidden h-20 items-center justify-between border-b border-white/70 bg-white/65 px-8 backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/40 lg:flex">
           <div>
-            <p className="text-sm font-medium text-slate-400">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">
               Workspace
             </p>
 
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            <h2 className="mt-1 text-lg font-bold text-slate-900 dark:text-white">
               Analytics
             </h2>
           </div>
@@ -320,7 +304,7 @@ export default function AnalyticsPage() {
           <div className="flex items-center gap-3">
             <Link
               href="/settings"
-              className="flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+              className="flex items-center gap-2 rounded-xl border border-white/80 bg-white/60 px-4 py-2.5 text-sm font-semibold text-slate-600 shadow-sm backdrop-blur-xl transition hover:-translate-y-0.5 hover:bg-white dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10"
             >
               <Settings size={16} />
               Settings
@@ -328,26 +312,28 @@ export default function AnalyticsPage() {
 
             <Link
               href="/analyzer"
-              className="flex items-center gap-2 rounded-xl bg-[#111827] px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 dark:bg-indigo-600 dark:hover:bg-indigo-500"
+              className="group flex items-center gap-2 rounded-xl border border-white/70 bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-violet-500/10 transition hover:-translate-y-0.5 hover:bg-slate-800 dark:border-white/10 dark:bg-white dark:text-slate-950"
             >
-              <Sparkles size={16} />
+              <Sparkles
+                size={16}
+                className="transition-transform group-hover:rotate-12"
+              />
               Analyze email
             </Link>
           </div>
         </div>
 
         {/* Page Content */}
+        <div className="relative mx-auto w-full max-w-6xl px-5 py-8 sm:px-8 lg:px-10 lg:py-10">
 
-        <div className="mx-auto max-w-6xl px-5 py-8 sm:px-8 lg:px-10 lg:py-10">
           {/* Heading */}
-
           <div>
-            <div className="flex items-center gap-2 text-sm font-semibold text-indigo-600 dark:text-indigo-400">
-              <BarChart3 size={16} />
+            <div className="inline-flex items-center gap-2 rounded-full border border-violet-200/70 bg-white/70 px-3 py-1.5 text-xs font-bold text-violet-600 shadow-sm backdrop-blur-xl dark:border-violet-400/10 dark:bg-white/5 dark:text-violet-300">
+              <BarChart3 size={14} />
               Email intelligence
             </div>
 
-            <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-950 dark:text-white sm:text-4xl">
+            <h1 className="mt-4 text-3xl font-bold tracking-tight text-slate-950 dark:text-white sm:text-4xl">
               Analytics
             </h1>
 
@@ -358,9 +344,8 @@ export default function AnalyticsPage() {
           </div>
 
           {/* Date Filter */}
-
           <div className="mt-7 flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
+            <div className="inline-flex items-center gap-2 rounded-2xl border border-white/80 bg-white/65 px-4 py-2.5 text-sm font-medium text-slate-600 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
               <CalendarDays size={16} />
               Last 7 days
             </div>
@@ -371,24 +356,22 @@ export default function AnalyticsPage() {
           </div>
 
           {/* Loading */}
-
           {loading ? (
             <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
               {[1, 2, 3, 4].map((item) => (
                 <div
                   key={item}
-                  className="h-32 animate-pulse rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900"
+                  className="h-32 animate-pulse rounded-2xl border border-white/80 bg-white/60 dark:border-white/10 dark:bg-white/[0.04]"
                 />
               ))}
             </div>
           ) : error ? (
-            <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 p-5 text-sm text-red-600 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-400">
+            <div className="mt-6 rounded-3xl border border-red-200/70 bg-red-50/80 p-5 text-sm text-red-600 shadow-sm backdrop-blur-xl dark:border-red-900/40 dark:bg-red-950/20 dark:text-red-400">
               {error}
             </div>
           ) : (
             <>
               {/* STAT CARDS */}
-
               <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 <StatCard
                   icon={<Mail size={19} />}
@@ -416,11 +399,10 @@ export default function AnalyticsPage() {
               </div>
 
               {/* CHARTS ROW */}
-
               <div className="mt-6 grid gap-6 xl:grid-cols-[1.4fr_0.8fr]">
-                {/* WEEKLY ACTIVITY */}
 
-                <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                {/* WEEKLY ACTIVITY */}
+                <div className="rounded-3xl border border-white/80 bg-white/65 p-6 shadow-sm backdrop-blur-xl transition hover:shadow-xl hover:shadow-violet-500/5 dark:border-white/10 dark:bg-white/[0.045]">
                   <div className="flex items-start justify-between">
                     <div>
                       <h3 className="font-bold text-slate-900 dark:text-white">
@@ -432,14 +414,13 @@ export default function AnalyticsPage() {
                       </p>
                     </div>
 
-                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 dark:bg-indigo-950/60 dark:text-indigo-400">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-violet-200/60 bg-violet-50/70 text-violet-600 dark:border-violet-400/10 dark:bg-violet-500/10 dark:text-violet-400">
                       <BarChart3 size={17} />
                     </div>
                   </div>
 
                   {/* BAR CHART */}
-
-                  <div className="mt-8 flex h-64 items-end justify-between gap-3 border-b border-slate-100 px-2 dark:border-slate-800">
+                  <div className="mt-8 flex h-64 items-end justify-between gap-3 border-b border-slate-200/70 px-2 dark:border-white/10">
                     {weeklyData.map((item) => {
                       const height =
                         (item.value / maxValue) * 100;
@@ -451,7 +432,7 @@ export default function AnalyticsPage() {
                         >
                           <div className="flex w-full flex-1 items-end justify-center">
                             <div
-                              className="w-full max-w-10 rounded-t-lg bg-indigo-500/90 transition hover:bg-indigo-600"
+                              className="w-full max-w-10 rounded-t-xl bg-gradient-to-t from-violet-600 to-cyan-400 shadow-lg shadow-violet-500/10 transition-all duration-300 hover:from-violet-500 hover:to-cyan-300"
                               style={{
                                 height: `${height}%`,
                                 minHeight:
@@ -487,8 +468,7 @@ export default function AnalyticsPage() {
                 </div>
 
                 {/* PRIORITY */}
-
-                <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                <div className="rounded-3xl border border-white/80 bg-white/65 p-6 shadow-sm backdrop-blur-xl transition hover:shadow-xl hover:shadow-violet-500/5 dark:border-white/10 dark:bg-white/[0.045]">
                   <div className="flex items-start justify-between">
                     <div>
                       <h3 className="font-bold text-slate-900 dark:text-white">
@@ -500,7 +480,7 @@ export default function AnalyticsPage() {
                       </p>
                     </div>
 
-                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-orange-50 text-orange-600 dark:bg-orange-950/40 dark:text-orange-400">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-orange-200/60 bg-orange-50/70 text-orange-500 dark:border-orange-400/10 dark:bg-orange-500/10 dark:text-orange-400">
                       <TrendingUp size={17} />
                     </div>
                   </div>
@@ -524,9 +504,9 @@ export default function AnalyticsPage() {
                             </span>
                           </div>
 
-                          <div className="h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+                          <div className="h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-white/10">
                             <div
-                              className="h-full rounded-full bg-indigo-500 transition-all"
+                              className="h-full rounded-full bg-gradient-to-r from-violet-600 to-cyan-400 transition-all duration-500"
                               style={{
                                 width: `${percentage}%`,
                               }}
@@ -540,11 +520,10 @@ export default function AnalyticsPage() {
               </div>
 
               {/* CATEGORY + AI INSIGHT */}
-
               <div className="mt-6 grid gap-6 xl:grid-cols-2">
-                {/* CATEGORIES */}
 
-                <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                {/* CATEGORIES */}
+                <div className="rounded-3xl border border-white/80 bg-white/65 p-6 shadow-sm backdrop-blur-xl transition hover:shadow-xl hover:shadow-violet-500/5 dark:border-white/10 dark:bg-white/[0.045]">
                   <div className="flex items-start justify-between">
                     <div>
                       <h3 className="font-bold text-slate-900 dark:text-white">
@@ -556,7 +535,7 @@ export default function AnalyticsPage() {
                       </p>
                     </div>
 
-                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 dark:bg-indigo-950/60 dark:text-indigo-400">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-cyan-200/60 bg-cyan-50/70 text-cyan-600 dark:border-cyan-400/10 dark:bg-cyan-500/10 dark:text-cyan-400">
                       <Mail size={17} />
                     </div>
                   </div>
@@ -580,9 +559,9 @@ export default function AnalyticsPage() {
                             </span>
                           </div>
 
-                          <div className="h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+                          <div className="h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-white/10">
                             <div
-                              className="h-full rounded-full bg-indigo-400 transition-all"
+                              className="h-full rounded-full bg-gradient-to-r from-cyan-500 to-violet-500 transition-all duration-500"
                               style={{
                                 width: `${category.percentage}%`,
                               }}
@@ -595,71 +574,75 @@ export default function AnalyticsPage() {
                 </div>
 
                 {/* AI INSIGHT */}
+                <div className="relative overflow-hidden rounded-3xl border border-violet-300/20 bg-gradient-to-br from-[#17122d] via-[#11152c] to-[#071c2b] p-6 text-white shadow-xl shadow-violet-900/10">
+                  <div className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-violet-500/20 blur-3xl" />
 
-                <div className="rounded-3xl bg-[#111827] p-6 text-white shadow-sm dark:bg-slate-900 dark:ring-1 dark:ring-slate-800">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10">
-                      <Sparkles size={19} />
+                  <div className="pointer-events-none absolute -bottom-20 -left-10 h-48 w-48 rounded-full bg-cyan-400/10 blur-3xl" />
+
+                  <div className="relative">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/10">
+                        <Sparkles size={19} />
+                      </div>
+
+                      <div>
+                        <p className="font-bold">
+                          AI productivity insight
+                        </p>
+
+                        <p className="text-xs text-slate-400">
+                          Based on your recent analyses
+                        </p>
+                      </div>
                     </div>
 
-                    <div>
-                      <p className="font-bold">
-                        AI productivity insight
-                      </p>
+                    <p className="mt-6 text-lg font-semibold leading-7">
+                      {totalEmails === 0
+                        ? "Analyze your first email to start building your productivity insights."
+                        : `MailBrief has analyzed ${totalEmails} email${
+                            totalEmails === 1 ? "" : "s"
+                          } and extracted ${aiInsights} useful AI insight${
+                            aiInsights === 1 ? "" : "s"
+                          }.`}
+                    </p>
 
-                      <p className="text-xs text-slate-400">
-                        Based on your recent analyses
-                      </p>
+                    <div className="mt-6 grid grid-cols-2 gap-3">
+                      <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-xl">
+                        <p className="text-xs text-slate-400">
+                          Estimated time saved
+                        </p>
+
+                        <p className="mt-1 text-xl font-bold">
+                          {timeSaved}
+                        </p>
+                      </div>
+
+                      <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-xl">
+                        <p className="text-xs text-slate-400">
+                          Avg. email
+                        </p>
+
+                        <p className="mt-1 text-xl font-bold">
+                          {averageReadingTime}
+                        </p>
+                      </div>
                     </div>
+
+                    <Link
+                      href="/analyzer"
+                      className="mt-6 flex h-11 items-center justify-center gap-2 rounded-xl bg-white text-sm font-semibold text-slate-900 transition hover:-translate-y-0.5 hover:bg-slate-100"
+                    >
+                      Analyze another email
+                      <Sparkles size={16} />
+                    </Link>
                   </div>
-
-                  <p className="mt-6 text-lg font-semibold leading-7">
-                    {totalEmails === 0
-                      ? "Analyze your first email to start building your productivity insights."
-                      : `MailBrief has analyzed ${totalEmails} email${
-                          totalEmails === 1 ? "" : "s"
-                        } and extracted ${aiInsights} useful AI insight${
-                          aiInsights === 1 ? "" : "s"
-                        }.`}
-                  </p>
-
-                  <div className="mt-6 grid grid-cols-2 gap-3">
-                    <div className="rounded-2xl bg-white/5 p-4">
-                      <p className="text-xs text-slate-400">
-                        Estimated time saved
-                      </p>
-
-                      <p className="mt-1 text-xl font-bold">
-                        {timeSaved}
-                      </p>
-                    </div>
-
-                    <div className="rounded-2xl bg-white/5 p-4">
-                      <p className="text-xs text-slate-400">
-                        Avg. email
-                      </p>
-
-                      <p className="mt-1 text-xl font-bold">
-                        {averageReadingTime}
-                      </p>
-                    </div>
-                  </div>
-
-                  <Link
-                    href="/analyzer"
-                    className="mt-6 flex h-11 items-center justify-center gap-2 rounded-xl bg-white text-sm font-semibold text-slate-900 transition hover:bg-slate-100"
-                  >
-                    Analyze another email
-                    <Sparkles size={16} />
-                  </Link>
                 </div>
               </div>
 
               {/* SETTINGS SHORTCUT */}
-
-              <div className="mt-6 flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:flex-row sm:items-center sm:justify-between">
+              <div className="mt-6 flex flex-col gap-4 rounded-3xl border border-white/80 bg-white/65 p-5 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.045] sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200/70 bg-slate-100/70 text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
                     <Settings size={18} />
                   </div>
 
@@ -677,7 +660,7 @@ export default function AnalyticsPage() {
 
                 <Link
                   href="/settings"
-                  className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+                  className="flex items-center justify-center gap-2 rounded-xl border border-white/80 bg-white/60 px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm backdrop-blur-xl transition hover:-translate-y-0.5 hover:bg-white dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10"
                 >
                   <Settings size={16} />
                   Open Settings
@@ -685,8 +668,7 @@ export default function AnalyticsPage() {
               </div>
 
               {/* BOTTOM NOTE */}
-
-              <div className="mt-6 rounded-2xl border border-dashed border-slate-300 bg-white/60 p-4 text-center dark:border-slate-700 dark:bg-slate-900/40">
+              <div className="mt-6 rounded-2xl border border-dashed border-slate-300/80 bg-white/50 p-4 text-center backdrop-blur-xl dark:border-slate-700 dark:bg-white/[0.02]">
                 <p className="text-xs leading-5 text-slate-400">
                   Analytics are calculated from your MailBrief
                   database and update automatically when new
@@ -701,28 +683,26 @@ export default function AnalyticsPage() {
   );
 }
 
-/* ========================= */
-/* STAT CARD */
-/* ========================= */
-
 function StatCard({
   icon,
   label,
   value,
 }: StatCardProps) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-      <div className="flex items-center justify-between">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-950/60 dark:text-indigo-400">
+    <div className="group relative overflow-hidden rounded-2xl border border-white/80 bg-white/65 p-5 shadow-sm backdrop-blur-xl transition duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-violet-500/5 dark:border-white/10 dark:bg-white/[0.045]">
+      <div className="absolute -right-8 -top-8 h-20 w-20 rounded-full bg-violet-400/10 blur-2xl transition group-hover:bg-violet-400/20" />
+
+      <div className="relative flex items-center justify-between">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-violet-200/60 bg-violet-50/70 text-violet-600 dark:border-violet-400/10 dark:bg-violet-500/10 dark:text-violet-400">
           {icon}
         </div>
       </div>
 
-      <p className="mt-5 text-xs font-medium text-slate-400">
+      <p className="relative mt-5 text-xs font-medium text-slate-400">
         {label}
       </p>
 
-      <p className="mt-1 text-2xl font-bold tracking-tight text-slate-950 dark:text-white">
+      <p className="relative mt-1 text-2xl font-bold tracking-tight text-slate-950 dark:text-white">
         {value}
       </p>
     </div>

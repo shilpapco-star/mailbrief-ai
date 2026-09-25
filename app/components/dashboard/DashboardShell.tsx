@@ -19,27 +19,105 @@ export default function DashboardShell({
   }
 
   return (
-    <div className="flex min-h-screen bg-slate-50 text-slate-900 transition-colors duration-300 dark:bg-slate-950 dark:text-slate-100">
-      {/* Desktop Sidebar */}
-      <Sidebar />
+    <div
+      className="
+        relative isolate flex min-h-screen overflow-x-hidden
+        bg-[#f6f7fb] text-slate-900
+        transition-colors duration-300
+        dark:bg-[#050816] dark:text-slate-100
+      "
+    >
+      {/* Aurora background */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div
+          className="
+            absolute -left-32 -top-32
+            h-[420px] w-[420px]
+            rounded-full
+            bg-violet-400/15
+            blur-[110px]
+            dark:bg-violet-600/15
+          "
+        />
 
-      {/* Main Area */}
-      <div className="min-w-0 flex-1">
+        <div
+          className="
+            absolute right-[-120px] top-[15%]
+            h-[420px] w-[420px]
+            rounded-full
+            bg-cyan-400/10
+            blur-[120px]
+            dark:bg-cyan-500/10
+          "
+        />
+
+        <div
+          className="
+            absolute bottom-[-180px] left-[30%]
+            h-[500px] w-[500px]
+            rounded-full
+            bg-fuchsia-400/10
+            blur-[130px]
+            dark:bg-fuchsia-600/10
+          "
+        />
+
+        {/* Subtle grid */}
+        <div
+          className="
+            absolute inset-0 opacity-[0.025]
+            dark:opacity-[0.035]
+            [background-image:linear-gradient(rgba(99,102,241,0.7)_1px,transparent_1px),linear-gradient(90deg,rgba(99,102,241,0.7)_1px,transparent_1px)]
+            [background-size:48px_48px]
+          "
+        />
+      </div>
+
+      {/* Desktop Sidebar */}
+      <div className="relative z-20">
+        <Sidebar />
+      </div>
+
+      {/* Main area */}
+      <div className="relative z-10 min-w-0 flex-1">
+
         {/* Mobile Header */}
-        <header className="sticky top-0 z-50 flex h-16 items-center justify-between border-b border-slate-200 bg-white/95 px-4 backdrop-blur dark:border-slate-800 dark:bg-slate-900/95 lg:hidden">
+        <header
+          className="
+            sticky top-0 z-50 flex h-16 items-center
+            justify-between
+            border-b border-white/60
+            bg-white/65 px-4
+            backdrop-blur-2xl
+            dark:border-white/10
+            dark:bg-[#070b1a]/75
+            lg:hidden
+          "
+        >
           <Link
             href="/"
             onClick={closeMobileMenu}
-            className="flex items-center gap-2"
+            className="group flex items-center gap-2"
           >
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#111827] text-white dark:bg-indigo-600">
-              <span className="text-sm font-bold">M</span>
+            <div
+              className="
+                relative flex h-9 w-9 items-center justify-center
+                overflow-hidden rounded-xl
+                bg-gradient-to-br from-violet-600 via-fuchsia-500 to-cyan-400
+                text-white shadow-md shadow-violet-500/20
+                transition group-hover:scale-105
+              "
+            >
+              <span className="relative text-sm font-bold">M</span>
             </div>
 
             <div>
               <p className="font-bold tracking-tight text-slate-900 dark:text-white">
                 MailBrief
-                <span className="text-indigo-600"> AI</span>
+                <span className="text-violet-600 dark:text-cyan-400">
+                  {" "}
+                  AI
+                </span>
               </p>
 
               <p className="text-[8px] uppercase tracking-[0.12em] text-slate-400">
@@ -51,7 +129,23 @@ export default function DashboardShell({
           <button
             type="button"
             onClick={() => setMobileMenuOpen((open) => !open)}
-            className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 text-slate-600 transition hover:bg-slate-50 hover:text-slate-900 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white"
+            className="
+              flex h-10 w-10 items-center justify-center
+              rounded-xl
+              border border-white/70
+              bg-white/60
+              text-slate-600
+              shadow-sm
+              backdrop-blur-xl
+              transition
+              hover:bg-white
+              hover:text-violet-600
+              dark:border-white/10
+              dark:bg-white/5
+              dark:text-slate-300
+              dark:hover:bg-white/10
+              dark:hover:text-cyan-300
+            "
             aria-label={
               mobileMenuOpen
                 ? "Close navigation menu"
@@ -67,19 +161,43 @@ export default function DashboardShell({
           </button>
         </header>
 
-        {/* Mobile Backdrop */}
+        {/* Mobile overlay */}
         {mobileMenuOpen && (
           <button
             type="button"
             aria-label="Close navigation menu"
             onClick={closeMobileMenu}
-            className="fixed inset-0 z-40 bg-slate-950/20 backdrop-blur-[1px] lg:hidden"
+            className="
+              fixed inset-0 z-40
+              bg-slate-950/20
+              backdrop-blur-[2px]
+              lg:hidden
+            "
           />
         )}
 
-        {/* Mobile Menu */}
+        {/* Mobile navigation */}
         {mobileMenuOpen && (
-          <div className="absolute left-0 right-0 top-16 z-50 border-b border-slate-200 bg-white p-4 shadow-xl dark:border-slate-800 dark:bg-slate-900 lg:hidden">
+          <div
+            className="
+              absolute left-3 right-3 top-[68px] z-50
+              overflow-hidden rounded-3xl
+              border border-white/70
+              bg-white/80 p-4
+              shadow-2xl shadow-slate-900/10
+              backdrop-blur-2xl
+              dark:border-white/10
+              dark:bg-[#090d1d]/90
+              dark:shadow-black/30
+              lg:hidden
+            "
+          >
+            <div className="mb-3 px-3">
+              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">
+                Workspace
+              </p>
+            </div>
+
             <nav className="space-y-2">
               <MobileNavLink
                 href="/analyzer"
@@ -105,7 +223,7 @@ export default function DashboardShell({
                 onClick={closeMobileMenu}
               />
 
-              <div className="my-2 border-t border-slate-100 dark:border-slate-800" />
+              <div className="my-3 h-px bg-slate-200/70 dark:bg-white/10" />
 
               <MobileNavLink
                 href="/"
@@ -117,18 +235,14 @@ export default function DashboardShell({
           </div>
         )}
 
-        {/* Page Content */}
-        <main className="min-h-screen">
+        {/* Page content */}
+        <main className="relative min-h-screen">
           {children}
         </main>
       </div>
     </div>
   );
 }
-
-/* ==================================================
-   MOBILE NAVIGATION LINK
-================================================== */
 
 function MobileNavLink({
   href,
@@ -145,11 +259,40 @@ function MobileNavLink({
     <Link
       href={href}
       onClick={onClick}
-      className={`block rounded-xl px-4 py-3 text-sm font-medium transition ${
-        muted
-          ? "text-slate-500 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white"
-          : "text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 dark:text-slate-200 dark:hover:bg-indigo-500/10 dark:hover:text-indigo-400"
-      }`}
+      className={`
+        group flex items-center rounded-2xl
+        border px-4 py-3.5
+        text-sm font-medium
+        transition-all duration-300
+        ${
+          muted
+            ? `
+              border-transparent
+              text-slate-500
+              hover:border-white/60
+              hover:bg-white/60
+              hover:text-slate-900
+              dark:text-slate-400
+              dark:hover:border-white/10
+              dark:hover:bg-white/5
+              dark:hover:text-white
+            `
+            : `
+              border-white/40
+              bg-white/35
+              text-slate-700
+              hover:border-violet-300/40
+              hover:bg-violet-50/70
+              hover:text-violet-700
+              dark:border-white/5
+              dark:bg-white/[0.03]
+              dark:text-slate-200
+              dark:hover:border-violet-400/20
+              dark:hover:bg-violet-500/10
+              dark:hover:text-white
+            `
+        }
+      `}
     >
       {label}
     </Link>
