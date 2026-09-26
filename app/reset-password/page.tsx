@@ -11,6 +11,7 @@ import {
   LockKeyhole,
   Loader2,
   ShieldCheck,
+  Sparkles,
 } from "lucide-react";
 
 export default function ResetPasswordPage() {
@@ -119,14 +120,23 @@ export default function ResetPasswordPage() {
 
   if (checkingSession) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[#f8fafc] px-5">
-        <div className="text-center">
-          <Loader2
-            className="mx-auto animate-spin text-indigo-600"
-            size={28}
-          />
+      <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#050816] px-5 text-white">
+        {/* Aurora background */}
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute left-1/2 top-[-180px] h-[420px] w-[420px] -translate-x-1/2 rounded-full bg-violet-600/20 blur-[120px]" />
 
-          <p className="mt-4 text-sm text-slate-500">
+          <div className="absolute bottom-[-180px] left-[-100px] h-[360px] w-[360px] rounded-full bg-cyan-500/10 blur-[110px]" />
+        </div>
+
+        <div className="relative text-center">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.06] shadow-2xl shadow-violet-950/20 backdrop-blur-xl">
+            <Loader2
+              className="animate-spin text-violet-300"
+              size={25}
+            />
+          </div>
+
+          <p className="mt-5 text-sm text-slate-400">
             Verifying your password reset link...
           </p>
         </div>
@@ -135,67 +145,125 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#f8fafc] text-slate-900">
+    <main className="relative min-h-screen overflow-hidden bg-[#050816] text-white">
 
-      {/* Header */}
+      {/* =====================================================
+          Aurora Background
+      ====================================================== */}
 
-      <header className="border-b border-slate-200 bg-white">
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+
+        <div className="absolute left-1/2 top-[-220px] h-[520px] w-[520px] -translate-x-1/2 rounded-full bg-violet-600/20 blur-[140px]" />
+
+        <div className="absolute right-[-120px] top-[35%] h-[380px] w-[380px] rounded-full bg-fuchsia-500/10 blur-[130px]" />
+
+        <div className="absolute bottom-[-180px] left-[-100px] h-[420px] w-[420px] rounded-full bg-cyan-500/10 blur-[130px]" />
+
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(124,58,237,0.08),transparent_38%)]" />
+
+      </div>
+
+      {/* =====================================================
+          Header
+      ====================================================== */}
+
+      <header className="relative z-10 border-b border-white/[0.07] bg-[#050816]/60 backdrop-blur-xl">
+
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5 sm:px-8">
 
           <Link
             href="/"
-            className="text-xl font-bold tracking-tight"
+            className="group flex items-center gap-2"
           >
-            Mail<span className="text-indigo-600">Brief</span>
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-white/[0.07] shadow-lg shadow-violet-950/20">
+              <Sparkles
+                size={15}
+                className="text-violet-300"
+              />
+            </div>
+
+            <span className="text-lg font-bold tracking-tight">
+              Mail
+              <span className="bg-gradient-to-r from-violet-300 via-fuchsia-300 to-cyan-300 bg-clip-text text-transparent">
+                Brief
+              </span>
+            </span>
           </Link>
 
           <Link
             href="/login"
-            className="inline-flex items-center gap-2 text-sm font-medium text-slate-500 transition hover:text-slate-900"
+            className="group inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-400 transition hover:bg-white/[0.05] hover:text-white"
           >
-            <ArrowLeft size={16} />
+            <ArrowLeft
+              size={16}
+              className="transition-transform group-hover:-translate-x-0.5"
+            />
             Back to login
           </Link>
 
         </div>
+
       </header>
 
-      {/* Main */}
+      {/* =====================================================
+          Main
+      ====================================================== */}
 
-      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center px-5 py-12">
+      <div className="relative z-10 flex min-h-[calc(100vh-4rem)] items-center justify-center px-5 py-12 sm:py-16">
 
         <div className="w-full max-w-md">
 
-          {/* Card */}
+          {/* =================================================
+              Card
+          ================================================= */}
 
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+          <div className="relative overflow-hidden rounded-[28px] border border-white/[0.10] bg-white/[0.055] p-6 shadow-2xl shadow-black/30 backdrop-blur-2xl sm:p-8">
+
+            {/* Card glow */}
+
+            <div className="pointer-events-none absolute -right-20 -top-20 h-48 w-48 rounded-full bg-violet-500/10 blur-3xl" />
+
+            <div className="pointer-events-none absolute -bottom-20 -left-20 h-48 w-48 rounded-full bg-cyan-500/10 blur-3xl" />
 
             {!success ? (
-              <>
-                {/* Icon */}
+              <div className="relative">
 
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600">
-                  <LockKeyhole size={26} />
+                {/* =================================================
+                    Icon
+                ================================================== */}
+
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-violet-400/20 bg-violet-500/10 text-violet-300 shadow-lg shadow-violet-950/20">
+                  <LockKeyhole size={25} />
                 </div>
 
-                {/* Heading */}
+                {/* =================================================
+                    Heading
+                ================================================== */}
 
                 <div className="mt-6">
-                  <h1 className="text-2xl font-bold tracking-tight">
+
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-violet-300/80">
+                    Account security
+                  </p>
+
+                  <h1 className="text-2xl font-bold tracking-tight text-white sm:text-[28px]">
                     Reset your password
                   </h1>
 
-                  <p className="mt-2 text-sm leading-6 text-slate-500">
-                    Create a new password for your MailBrief
-                    account.
+                  <p className="mt-2 text-sm leading-6 text-slate-400">
+                    Create a new password to keep your
+                    MailBrief account secure.
                   </p>
+
                 </div>
 
-                {/* Password */}
+                {/* =================================================
+                    New Password
+                ================================================== */}
 
                 <div className="mt-7">
 
-                  <label className="mb-2 block text-sm font-medium text-slate-700">
+                  <label className="mb-2 block text-sm font-medium text-slate-200">
                     New password
                   </label>
 
@@ -213,7 +281,7 @@ export default function ResetPasswordPage() {
                       }
                       placeholder="Enter new password"
                       disabled={loading}
-                      className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 pr-12 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 disabled:cursor-not-allowed disabled:bg-slate-50"
+                      className="w-full rounded-xl border border-white/[0.10] bg-black/20 px-4 py-3 pr-12 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-violet-400/50 focus:bg-white/[0.045] focus:ring-4 focus:ring-violet-500/10 disabled:cursor-not-allowed disabled:opacity-60"
                     />
 
                     <button
@@ -224,7 +292,12 @@ export default function ResetPasswordPage() {
                         )
                       }
                       disabled={loading}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                      aria-label={
+                        showNewPassword
+                          ? "Hide password"
+                          : "Show password"
+                      }
+                      className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-2 text-slate-500 transition hover:bg-white/[0.06] hover:text-slate-200"
                     >
                       {showNewPassword ? (
                         <EyeOff size={18} />
@@ -235,17 +308,19 @@ export default function ResetPasswordPage() {
 
                   </div>
 
-                  <p className="mt-2 text-xs text-slate-400">
+                  <p className="mt-2 text-xs text-slate-500">
                     Use at least 8 characters.
                   </p>
 
                 </div>
 
-                {/* Confirm Password */}
+                {/* =================================================
+                    Confirm Password
+                ================================================== */}
 
                 <div className="mt-5">
 
-                  <label className="mb-2 block text-sm font-medium text-slate-700">
+                  <label className="mb-2 block text-sm font-medium text-slate-200">
                     Confirm new password
                   </label>
 
@@ -265,7 +340,7 @@ export default function ResetPasswordPage() {
                       }
                       placeholder="Confirm your password"
                       disabled={loading}
-                      className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 pr-12 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 disabled:cursor-not-allowed disabled:bg-slate-50"
+                      className="w-full rounded-xl border border-white/[0.10] bg-black/20 px-4 py-3 pr-12 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-violet-400/50 focus:bg-white/[0.045] focus:ring-4 focus:ring-violet-500/10 disabled:cursor-not-allowed disabled:opacity-60"
                     />
 
                     <button
@@ -276,7 +351,12 @@ export default function ResetPasswordPage() {
                         )
                       }
                       disabled={loading}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                      aria-label={
+                        showConfirmPassword
+                          ? "Hide password"
+                          : "Show password"
+                      }
+                      className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-2 text-slate-500 transition hover:bg-white/[0.06] hover:text-slate-200"
                     >
                       {showConfirmPassword ? (
                         <EyeOff size={18} />
@@ -289,21 +369,25 @@ export default function ResetPasswordPage() {
 
                 </div>
 
-                {/* Error */}
+                {/* =================================================
+                    Error
+                ================================================== */}
 
                 {error && (
-                  <div className="mt-5 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-medium leading-5 text-red-600">
+                  <div className="mt-5 rounded-xl border border-red-400/15 bg-red-500/[0.08] px-4 py-3 text-sm font-medium leading-5 text-red-300">
                     {error}
                   </div>
                 )}
 
-                {/* Submit */}
+                {/* =================================================
+                    Submit
+                ================================================== */}
 
                 <button
                   type="button"
                   onClick={handleResetPassword}
                   disabled={loading || !!error}
-                  className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 via-fuchsia-600 to-violet-600 px-5 py-3.5 text-sm font-semibold text-white shadow-lg shadow-violet-950/30 transition hover:scale-[1.01] hover:shadow-violet-900/40 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
                 >
                   {loading ? (
                     <>
@@ -318,43 +402,52 @@ export default function ResetPasswordPage() {
                   )}
                 </button>
 
-                {/* Security */}
+                {/* =================================================
+                    Security Note
+                ================================================== */}
 
-                <div className="mt-6 flex items-start gap-3 rounded-xl bg-slate-50 p-4">
+                <div className="mt-6 flex items-start gap-3 rounded-xl border border-white/[0.07] bg-white/[0.035] p-4">
 
                   <ShieldCheck
                     size={18}
-                    className="mt-0.5 shrink-0 text-emerald-600"
+                    className="mt-0.5 shrink-0 text-emerald-300"
                   />
 
                   <p className="text-xs leading-5 text-slate-500">
                     Your password is securely managed by
-                    Supabase Auth. MailBrief does not store your
-                    password in the application database.
+                    Supabase Auth. MailBrief does not store
+                    your password in the application database.
                   </p>
 
                 </div>
-              </>
+
+              </div>
             ) : (
-              /* Success */
+              /* =================================================
+                 Success
+              ================================================== */
 
-              <div className="py-6 text-center">
+              <div className="relative py-6 text-center">
 
-                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
+                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-emerald-400/20 bg-emerald-400/10 text-emerald-300 shadow-lg shadow-emerald-950/20">
                   <CheckCircle2 size={32} />
                 </div>
 
-                <h1 className="mt-6 text-2xl font-bold tracking-tight">
+                <p className="mt-6 text-xs font-semibold uppercase tracking-[0.18em] text-emerald-300/80">
+                  All set
+                </p>
+
+                <h1 className="mt-2 text-2xl font-bold tracking-tight text-white">
                   Password updated
                 </h1>
 
-                <p className="mx-auto mt-3 max-w-sm text-sm leading-6 text-slate-500">
+                <p className="mx-auto mt-3 max-w-sm text-sm leading-6 text-slate-400">
                   {message}
                 </p>
 
                 <Link
                   href="/login"
-                  className="mt-7 inline-flex w-full items-center justify-center rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
+                  className="mt-7 inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-violet-600 via-fuchsia-600 to-violet-600 px-5 py-3.5 text-sm font-semibold text-white shadow-lg shadow-violet-950/30 transition hover:scale-[1.01] hover:shadow-violet-900/40"
                 >
                   Continue to login
                 </Link>
@@ -364,9 +457,11 @@ export default function ResetPasswordPage() {
 
           </div>
 
-          {/* Footer */}
+          {/* =====================================================
+              Footer
+          ====================================================== */}
 
-          <p className="mt-6 text-center text-xs text-slate-400">
+          <p className="mt-6 text-center text-xs text-slate-600">
             MailBrief AI · Your email, understood.
           </p>
 
