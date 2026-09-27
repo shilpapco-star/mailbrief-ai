@@ -1,36 +1,173 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 📧 MailBrief AI
 
-## Getting Started
+> **Understand every email in seconds.**
 
-First, run the development server:
+MailBrief AI is an AI-powered email analyzer that transforms long and complicated emails into clear, actionable information.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+Instead of spending time reading through lengthy emails, users can paste an email into MailBrief AI and quickly understand **what the email is about, what matters, what needs to be done, important dates, and how they can respond.**
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+🌐 **Live Demo:** https://mailbrief-ai-6mwh.vercel.app/  
+💻 **GitHub:** https://github.com/shilpapco-star/mailbrief-ai
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 🚀 Why MailBrief AI?
 
-## Learn More
+Emails often contain important information hidden inside long paragraphs.
 
-To learn more about Next.js, take a look at the following resources:
+Users may need to identify:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- What is the main purpose of the email?
+- What are the important points?
+- Is any action required?
+- What is the deadline?
+- How urgent is the email?
+- What should I reply?
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Reading and processing every email manually can take unnecessary time.
 
-## Deploy on Vercel
+**MailBrief AI addresses this problem by using AI to extract and organize the important information from an email into an easy-to-understand format.**
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+---
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## ✨ Features
+
+### 🤖 AI Email Analysis
+
+Analyze an email and receive structured insights instead of reading the entire email manually.
+
+### 📝 Smart Summaries
+
+Generates a concise summary explaining the main purpose and context of the email.
+
+### 🔑 Key Points
+
+Extracts the most important information from the email.
+
+### ✅ Action Items
+
+Identifies tasks that the recipient needs to complete.
+
+### 📅 Important Dates
+
+Detects important dates, deadlines, meetings, and scheduled events mentioned in the email.
+
+### 🚨 Priority Detection
+
+Helps identify the importance of an email using priority levels such as:
+
+- LOW
+- MEDIUM
+- HIGH
+- URGENT
+
+### 🎯 Sender Intent
+
+Identifies the primary intent of the sender to help users understand why the email was sent.
+
+### 💬 Suggested Replies
+
+Provides an AI-generated reply suggestion so users can quickly understand **what they could reply back to the sender**.
+
+### 📋 Email History
+
+Keeps previously analyzed emails organized so users can revisit their analysis.
+
+### 📊 Analytics
+
+Provides an overview of analyzed emails through statistics and visual insights.
+
+### 🔐 Authentication
+
+Users can securely register and log in using email/password authentication and Google authentication.
+
+### 🌙 Responsive UI
+
+A modern, responsive interface designed for desktop and smaller screens with a glassmorphism-inspired visual style.
+
+---
+
+## 🖥️ Application Pages
+
+| Page | Description |
+|------|-------------|
+| 🏠 Dashboard | Overview of the MailBrief AI application |
+| 📧 Analyzer | Analyze and understand emails using AI |
+| 📋 History | View previously analyzed emails |
+| 📊 Analytics | View email statistics and insights |
+| ⚙️ Settings | Manage account and application preferences |
+| 🔍 Email Details | View detailed analysis of an individual email |
+
+---
+
+## 🛠️ Tech Stack
+
+### Frontend
+
+- **Next.js**
+- **React**
+- **TypeScript**
+- **Tailwind CSS**
+- **Lucide Icons**
+- **Motion**
+
+### Backend & Database
+
+- **Supabase**
+- **PostgreSQL**
+- **Supabase Authentication**
+
+### AI
+
+- **Google Gemini**
+
+### Validation & Development
+
+- **Zod**
+- **Vitest**
+- **ESLint**
+
+### Deployment
+
+- **Vercel**
+
+### Version Control
+
+- **Git**
+- **GitHub**
+
+---
+
+## 🏗️ How It Works
+
+```text
+User
+  │
+  ▼
+Paste Email
+  │
+  ▼
+MailBrief AI
+  │
+  ▼
+API / Analysis Layer
+  │
+  ▼
+Google Gemini
+  │
+  ▼
+Structured AI Analysis
+  │
+  ├── Summary
+  ├── Key Points
+  ├── Action Items
+  ├── Important Dates
+  ├── Priority
+  ├── Sender Intent
+  └── Suggested Reply
+  │
+  ▼
+Supabase PostgreSQL
+  │
+  ▼
+History & Analytics
